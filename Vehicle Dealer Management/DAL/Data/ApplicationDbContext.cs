@@ -37,6 +37,12 @@ namespace Vehicle_Dealer_Management.DAL.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Sale> Sales { get; set; }
 
+        // Logging
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
+
+        // Notifications
+        public DbSet<Notification> Notifications { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -120,38 +120,6 @@ namespace Vehicle_Dealer_Management.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PricePolicies",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    VehicleId = table.Column<int>(type: "int", nullable: false),
-                    DealerId = table.Column<int>(type: "int", nullable: true),
-                    Msrp = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    WholesalePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    DiscountRuleJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ValidFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ValidTo = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PricePolicies", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PricePolicies_Dealers_DealerId",
-                        column: x => x.DealerId,
-                        principalTable: "Dealers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PricePolicies_Vehicles_VehicleId",
-                        column: x => x.VehicleId,
-                        principalTable: "Vehicles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Promotions",
                 columns: table => new
                 {
@@ -223,6 +191,7 @@ namespace Vehicle_Dealer_Management.Migrations
                     OwnerId = table.Column<int>(type: "int", nullable: false),
                     VehicleId = table.Column<int>(type: "int", nullable: false),
                     ColorCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: true),
                     Qty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
@@ -237,6 +206,33 @@ namespace Vehicle_Dealer_Management.Migrations
                         principalTable: "Vehicles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ActivityLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    EntityType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    EntityId = table.Column<int>(type: "int", nullable: true),
+                    EntityName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    UserRole = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IpAddress = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ActivityLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ActivityLogs_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -300,6 +296,73 @@ namespace Vehicle_Dealer_Management.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Notifications",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    LinkUrl = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    RelatedEntityId = table.Column<int>(type: "int", nullable: true),
+                    RelatedEntityType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notifications", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Notifications_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PricePolicies",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    DealerId = table.Column<int>(type: "int", nullable: true),
+                    Msrp = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    WholesalePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    DiscountRuleJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PromotionId = table.Column<int>(type: "int", nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ValidFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ValidTo = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PricePolicies", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PricePolicies_Dealers_DealerId",
+                        column: x => x.DealerId,
+                        principalTable: "Dealers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PricePolicies_Promotions_PromotionId",
+                        column: x => x.PromotionId,
+                        principalTable: "Promotions",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_PricePolicies_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -497,6 +560,11 @@ namespace Vehicle_Dealer_Management.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_ActivityLogs_UserId",
+                table: "ActivityLogs",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CustomerProfiles_Email",
                 table: "CustomerProfiles",
                 column: "Email",
@@ -559,6 +627,11 @@ namespace Vehicle_Dealer_Management.Migrations
                 columns: new[] { "DealerId", "Status" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Notifications_UserId",
+                table: "Notifications",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Payments_SalesDocumentId_PaidAt",
                 table: "Payments",
                 columns: new[] { "SalesDocumentId", "PaidAt" });
@@ -567,6 +640,11 @@ namespace Vehicle_Dealer_Management.Migrations
                 name: "IX_PricePolicies_DealerId",
                 table: "PricePolicies",
                 column: "DealerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PricePolicies_PromotionId",
+                table: "PricePolicies",
+                column: "PromotionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PricePolicies_VehicleId_DealerId_ValidFrom_ValidTo",
@@ -697,6 +775,9 @@ namespace Vehicle_Dealer_Management.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ActivityLogs");
+
+            migrationBuilder.DropTable(
                 name: "DealerOrders");
 
             migrationBuilder.DropTable(
@@ -704,6 +785,9 @@ namespace Vehicle_Dealer_Management.Migrations
 
             migrationBuilder.DropTable(
                 name: "Feedbacks");
+
+            migrationBuilder.DropTable(
+                name: "Notifications");
 
             migrationBuilder.DropTable(
                 name: "Payments");

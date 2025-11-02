@@ -12,23 +12,27 @@ namespace Vehicle_Dealer_Management.Pages.EVM
         private readonly IPricePolicyService _pricePolicyService;
         private readonly IVehicleService _vehicleService;
         private readonly IDealerService _dealerService;
+        private readonly INotificationService _notificationService;
         private readonly ApplicationDbContext _context; // Tạm thời cần cho query phức tạp
 
         public PricePoliciesModel(
             IPricePolicyService pricePolicyService,
             IVehicleService vehicleService,
             IDealerService dealerService,
+            INotificationService notificationService,
             ApplicationDbContext context)
         {
             _pricePolicyService = pricePolicyService;
             _vehicleService = vehicleService;
             _dealerService = dealerService;
+            _notificationService = notificationService;
             _context = context;
         }
 
         public List<string> AllVehicles { get; set; } = new();
         public List<string> AllDealers { get; set; } = new();
         public List<VehicleSimple> Vehicles { get; set; } = new();
+        public List<PromotionSimple> Promotions { get; set; } = new();
         public List<PricePolicyViewModel> PricePolicies { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync()
@@ -54,6 +58,17 @@ namespace Vehicle_Dealer_Management.Pages.EVM
                 Name = v.ModelName + " " + v.VariantName
             }).ToList();
 
+            // Get active promotions for create form
+            Promotions = await _context.Promotions
+                .Where(p => p.ValidFrom <= DateTime.UtcNow && (p.ValidTo == null || p.ValidTo >= DateTime.UtcNow))
+                .Select(p => new PromotionSimple
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    RuleJson = p.RuleJson
+                })
+                .ToListAsync();
+
             // Get all price policies (cần include để map ViewModel)
             var policies = await _context.PricePolicies
                 .Include(p => p.Vehicle)
@@ -69,13 +84,14 @@ namespace Vehicle_Dealer_Management.Pages.EVM
                 Msrp = p.Msrp,
                 WholesalePrice = p.WholesalePrice ?? 0,
                 ValidFrom = p.ValidFrom,
-                ValidTo = p.ValidTo
+                ValidTo = p.ValidTo,
+                Note = p.Note ?? ""
             }).ToList();
 
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync(int vehicleId, decimal msrp, decimal wholesalePrice)
+        public async Task<IActionResult> OnPostAsync(int vehicleId, decimal msrp, decimal wholesalePrice, int? promotionId, decimal? discountPercent, string? note)
         {
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
@@ -85,17 +101,62 @@ namespace Vehicle_Dealer_Management.Pages.EVM
 
             try
             {
+                decimal? finalMsrp = msrp;
+                decimal? finalWholesalePrice = wholesalePrice;
+                decimal finalDiscountPercent = 0;
+
+                // Ưu tiên discountPercent trực tiếp, nếu không có thì lấy từ promotion
+                if (discountPercent.HasValue && discountPercent.Value > 0)
+                {
+                    finalDiscountPercent = discountPercent.Value;
+                    finalMsrp = msrp * (1 - discountPercent.Value / 100);
+                    finalWholesalePrice = wholesalePrice * (1 - discountPercent.Value / 100);
+                }
+                else if (promotionId.HasValue)
+                {
+                    var promotion = await _context.Promotions.FindAsync(promotionId.Value);
+                    if (promotion != null)
+                    {
+                        // Parse discount from RuleJson
+                        var ruleJson = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(promotion.RuleJson ?? "{}");
+                        if (ruleJson != null && ruleJson.ContainsKey("discountPercent"))
+                        {
+                            if (decimal.TryParse(ruleJson["discountPercent"].ToString(), out var percent))
+                            {
+                                finalDiscountPercent = percent;
+                                finalMsrp = msrp * (1 - percent / 100);
+                                finalWholesalePrice = wholesalePrice * (1 - percent / 100);
+                            }
+                        }
+                    }
+                }
+
                 var pricePolicy = new PricePolicy
                 {
                     VehicleId = vehicleId,
                     DealerId = null, // Global
-                    Msrp = msrp,
-                    WholesalePrice = wholesalePrice,
+                    Msrp = finalMsrp ?? msrp,
+                    WholesalePrice = finalWholesalePrice ?? wholesalePrice,
+                    PromotionId = promotionId, // Có thể null nếu dùng discountPercent trực tiếp
+                    Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
                     ValidFrom = DateTime.UtcNow,
                     ValidTo = null
                 };
 
                 await _pricePolicyService.CreatePricePolicyAsync(pricePolicy);
+
+                // Create notification for customers if discount is applied
+                if (finalDiscountPercent > 0)
+                {
+                    var vehicle = await _vehicleService.GetVehicleByIdAsync(vehicleId);
+                    if (vehicle != null)
+                    {
+                        await _notificationService.CreatePromotionNotificationAsync(
+                            vehicleId, 
+                            $"{vehicle.ModelName} {vehicle.VariantName}", 
+                            finalDiscountPercent);
+                    }
+                }
 
                 TempData["Success"] = "Tạo chính sách giá thành công!";
             }
@@ -107,7 +168,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             return RedirectToPage();
         }
 
-        public async Task<IActionResult> OnPostUpdatePolicyAsync(int policyId, decimal msrp, decimal wholesalePrice, string validFrom, string? validTo)
+        public async Task<IActionResult> OnPostUpdatePolicyAsync(int policyId, decimal msrp, decimal wholesalePrice, string validFrom, string? validTo, decimal? discountPercent, string? note)
         {
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
@@ -120,14 +181,14 @@ namespace Vehicle_Dealer_Management.Pages.EVM
                 var policy = await _pricePolicyService.GetPricePolicyByIdAsync(policyId);
                 if (policy == null)
                 {
-                    TempData["Error"] = "Không tìm thấy chính sách giá này.";
+                    TempData["EditError"] = "Không tìm thấy chính sách giá này.";
                     return RedirectToPage();
                 }
 
                 // Parse dates
                 if (!DateTime.TryParse(validFrom, out var validFromDate))
                 {
-                    TempData["Error"] = "Ngày bắt đầu không hợp lệ.";
+                    TempData["EditError"] = "Ngày bắt đầu không hợp lệ.";
                     return RedirectToPage();
                 }
 
@@ -137,19 +198,45 @@ namespace Vehicle_Dealer_Management.Pages.EVM
                     validToDate = parsedDate;
                 }
 
+                // Calculate final price if discount is applied
+                decimal finalMsrp = msrp;
+                decimal? finalWholesalePrice = wholesalePrice;
+                decimal finalDiscountPercent = 0;
+
+                if (discountPercent.HasValue && discountPercent.Value > 0)
+                {
+                    finalDiscountPercent = discountPercent.Value;
+                    finalMsrp = msrp * (1 - discountPercent.Value / 100);
+                    finalWholesalePrice = wholesalePrice * (1 - discountPercent.Value / 100);
+                }
+
                 // Update policy
-                policy.Msrp = msrp;
-                policy.WholesalePrice = wholesalePrice;
+                policy.Msrp = finalMsrp;
+                policy.WholesalePrice = finalWholesalePrice;
+                policy.Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
                 policy.ValidFrom = validFromDate;
                 policy.ValidTo = validToDate;
 
                 await _pricePolicyService.UpdatePricePolicyAsync(policy);
 
+                // Create notification if discount is applied
+                if (finalDiscountPercent > 0)
+                {
+                    var vehicle = await _vehicleService.GetVehicleByIdAsync(policy.VehicleId);
+                    if (vehicle != null)
+                    {
+                        await _notificationService.CreatePromotionNotificationAsync(
+                            policy.VehicleId,
+                            $"{vehicle.ModelName} {vehicle.VariantName}",
+                            finalDiscountPercent);
+                    }
+                }
+
                 TempData["Success"] = "Cập nhật chính sách giá thành công!";
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"Lỗi: {ex.Message}";
+                TempData["EditError"] = $"Lỗi: {ex.Message}";
             }
 
             return RedirectToPage();
@@ -182,6 +269,13 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             public string Name { get; set; } = "";
         }
 
+        public class PromotionSimple
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = "";
+            public string? RuleJson { get; set; }
+        }
+
         public class PricePolicyViewModel
         {
             public int Id { get; set; }
@@ -191,6 +285,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             public decimal WholesalePrice { get; set; }
             public DateTime ValidFrom { get; set; }
             public DateTime? ValidTo { get; set; }
+            public string Note { get; set; } = "";
         }
     }
 }

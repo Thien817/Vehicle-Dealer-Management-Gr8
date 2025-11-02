@@ -10,15 +10,18 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
     {
         private readonly IVehicleService _vehicleService;
         private readonly IPricePolicyService _pricePolicyService;
+        private readonly IActivityLogService _activityLogService;
         private readonly ApplicationDbContext _context; // Tạm thời giữ để check SalesDocumentLines
 
         public IndexModel(
             IVehicleService vehicleService,
             IPricePolicyService pricePolicyService,
+            IActivityLogService activityLogService,
             ApplicationDbContext context)
         {
             _vehicleService = vehicleService;
             _pricePolicyService = pricePolicyService;
+            _activityLogService = activityLogService;
             _context = context;
         }
 
@@ -77,12 +80,35 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
                 return RedirectToPage();
             }
 
-            // Soft delete: Set status to DISCONTINUED instead of hard delete
-            vehicle.Status = "DISCONTINUED";
-            vehicle.UpdatedDate = DateTime.UtcNow;
-            await _vehicleService.UpdateVehicleAsync(vehicle);
+            try
+            {
+                // Soft delete: Set status to DISCONTINUED instead of hard delete
+                vehicle.Status = "DISCONTINUED";
+                vehicle.UpdatedDate = DateTime.UtcNow;
+                await _vehicleService.UpdateVehicleAsync(vehicle);
 
-            TempData["Success"] = "Đã đổi trạng thái xe thành DISCONTINUED thành công!";
+                // Log activity
+                var userIdInt = int.Parse(userId);
+                var userRole = HttpContext.Session.GetString("UserRole") ?? "EVM_STAFF";
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                
+                await _activityLogService.LogActivityAsync(
+                    userId: userIdInt,
+                    action: "DELETE",
+                    entityType: "Vehicle",
+                    entityId: vehicle.Id,
+                    entityName: $"{vehicle.ModelName} {vehicle.VariantName}",
+                    description: "Đã xóa (đổi trạng thái thành DISCONTINUED) xe thành công",
+                    userRole: userRole,
+                    ipAddress: ipAddress);
+
+                TempData["Success"] = "Đã xóa xe thành công!";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Lỗi khi xóa xe: {ex.Message}";
+            }
+            
             return RedirectToPage();
         }
 

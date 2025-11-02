@@ -104,10 +104,17 @@
                             </td>
                             <td>
                                 <div class="flex gap-1">
-                                    <button class="btn btn-secondary btn-sm" onclick="editPolicy(@policy.Id, '@policy.VehicleName', @policy.Msrp, @policy.WholesalePrice, '@(policy.ValidFrom.ToString("yyyy-MM-dd"))', '@(policy.ValidTo?.ToString("yyyy-MM-dd") ?? "")')">
+                                    <button class="btn btn-secondary btn-sm edit-policy-btn" 
+                                            data-policy-id="@policy.Id"
+                                            data-vehicle-name="@(policy.VehicleName.Replace("\"", "&quot;"))"
+                                            data-msrp="@policy.Msrp"
+                                            data-wholesale-price="@policy.WholesalePrice"
+                                            data-valid-from="@policy.ValidFrom.ToString("yyyy-MM-dd")"
+                                            data-valid-to="@(policy.ValidTo?.ToString("yyyy-MM-dd") ?? "")"
+                                            data-note="@((policy.Note ?? "").Replace("\"", "&quot;").Replace("\r", "").Replace("\n", " "))">
                                         <i class="bi bi-pencil"></i> Sửa
                                     </button>
-                                    <button class="btn btn-danger btn-sm" onclick="deletePolicy(@policy.Id, '@policy.VehicleName')">
+                                    <button class="btn btn-danger btn-sm" onclick="deletePolicy(@policy.Id, '@Html.Raw(policy.VehicleName.Replace("'", "\\'"))')">
                                         <i class="bi bi-trash"></i> Xóa
                                     </button>
                                 </div>
@@ -122,15 +129,16 @@
 
 <!-- Create Modal (Simple) -->
 <div id="createModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;">
-    <div class="card" style="max-width: 600px; width: 90%; margin: 2rem;">
+    <div class="card" style="max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; margin: auto;">
         <div class="card-header">
             <h3 class="card-title mb-0">Tạo chính sách giá mới</h3>
         </div>
         <div class="card-body">
-            <form method="post">
+            <form method="post" id="createPolicyForm">
+                @Html.AntiForgeryToken()
                 <div class="form-group">
                     <label class="form-label">Mẫu xe</label>
-                    <select class="form-control" name="vehicleId" required>
+                    <select class="form-control" name="vehicleId" id="createVehicleId" required>
                         <option value="">-- Chọn xe --</option>
                         @foreach (var v in Model.Vehicles)
                         {
@@ -139,12 +147,41 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Giá bán lẻ (MSRP)</label>
-                    <input type="number" class="form-control" name="msrp" required step="1000000" />
+                    <label class="form-label">Chọn khuyến mãi (tùy chọn)</label>
+                    <select class="form-control" name="promotionId" id="createPromotionId" onchange="onPromotionChange()">
+                        <option value="">-- Không chọn khuyến mãi --</option>
+                        @foreach (var p in Model.Promotions)
+                        {
+                            <option value="@p.Id" data-rule='@p.RuleJson'>@p.Name</option>
+                        }
+                    </select>
+                    <small class="form-text">Hoặc nhập % giảm giá trực tiếp bên dưới</small>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Giá sỉ</label>
-                    <input type="number" class="form-control" name="wholesalePrice" required step="1000000" />
+                    <label class="form-label">% Giảm giá trực tiếp (tùy chọn)</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" class="form-control" id="createDiscountPercent" name="discountPercent" min="0" max="100" step="0.1" placeholder="0" onchange="onDiscountPercentChange()" style="flex: 1;" />
+                        <span style="color: var(--text-muted);">%</span>
+                    </div>
+                    <small class="form-text">Nhập số phần trăm giảm giá (ví dụ: 20 cho 20%). Hệ thống sẽ tự động tính giá cuối cùng.</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Giá bán lẻ (MSRP) <span style="color: var(--text-muted);">(giá gốc)</span></label>
+                    <input type="number" class="form-control" name="msrp" id="createMsrp" required step="1000000" onchange="calculatePrice()" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Giá sỉ <span style="color: var(--text-muted);">(giá gốc)</span></label>
+                    <input type="number" class="form-control" name="wholesalePrice" id="createWholesalePrice" required step="1000000" onchange="calculatePrice()" />
+                </div>
+                <div class="alert alert-info" id="pricePreview" style="display: none; padding: 0.75rem; background: var(--info-bg, rgba(59, 130, 246, 0.1)); border: 1px solid var(--info, #3b82f6); border-radius: var(--radius-sm); color: var(--info, #3b82f6); font-size: 0.875rem;">
+                    <strong>Giá sau giảm:</strong><br>
+                    <span id="discountedMsrp"></span><br>
+                    <span id="discountedWholesale"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ghi chú về giá (tùy chọn)</label>
+                    <textarea class="form-control" name="note" id="createNote" rows="3" placeholder="Ví dụ: Giá đã bao gồm khuyến mãi 20%. Giá có thể thay đổi tùy theo đại lý..."></textarea>
+                    <small class="form-text">Ghi chú này sẽ hiển thị trên trang chi tiết xe để khách hàng xem</small>
                 </div>
                 <div class="flex gap-2">
                     <button type="submit" class="btn btn-primary">Tạo</button>
@@ -162,25 +199,44 @@
             <h3 class="card-title mb-0">Chỉnh sửa chính sách giá</h3>
         </div>
         <div class="card-body">
-            @if (TempData["Error"] != null)
+            @if (TempData["EditError"] != null)
             {
                 <div class="alert alert-error" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--error-bg); border: 1px solid var(--error); border-radius: var(--radius-sm); color: var(--error);">
-                    <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+                    <i class="bi bi-exclamation-triangle"></i> @TempData["EditError"]
                 </div>
             }
             <form method="post" asp-page-handler="UpdatePolicy">
+                @Html.AntiForgeryToken()
                 <input type="hidden" id="editPolicyId" name="policyId" />
                 <div class="form-group">
                     <label class="form-label">Mẫu xe</label>
                     <input type="text" class="form-control" id="editVehicleName" readonly style="background: var(--black); cursor: not-allowed;" />
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Giá bán lẻ (MSRP)</label>
-                    <input type="number" class="form-control" id="editMsrp" name="msrp" required step="1000000" />
+                    <label class="form-label">% Giảm giá trực tiếp (tùy chọn)</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" class="form-control" id="editDiscountPercent" name="discountPercent" min="0" max="100" step="0.1" placeholder="0" onchange="calculateEditPrice()" style="flex: 1;" />
+                        <span style="color: var(--text-muted);">%</span>
+                    </div>
+                    <small class="form-text">Nhập % giảm giá để tự động tính giá cuối cùng</small>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Giá sỉ</label>
-                    <input type="number" class="form-control" id="editWholesalePrice" name="wholesalePrice" required step="1000000" />
+                    <label class="form-label">Giá bán lẻ (MSRP) <span style="color: var(--text-muted);">(giá gốc)</span></label>
+                    <input type="number" class="form-control" id="editMsrp" name="msrp" required step="1000000" onchange="calculateEditPrice()" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Giá sỉ <span style="color: var(--text-muted);">(giá gốc)</span></label>
+                    <input type="number" class="form-control" id="editWholesalePrice" name="wholesalePrice" required step="1000000" onchange="calculateEditPrice()" />
+                </div>
+                <div class="alert alert-info" id="editPricePreview" style="display: none; padding: 0.75rem; background: var(--info-bg, rgba(59, 130, 246, 0.1)); border: 1px solid var(--info, #3b82f6); border-radius: var(--radius-sm); color: var(--info, #3b82f6); font-size: 0.875rem;">
+                    <strong>Giá sau giảm:</strong><br>
+                    <span id="editDiscountedMsrp"></span><br>
+                    <span id="editDiscountedWholesale"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ghi chú về giá (tùy chọn)</label>
+                    <textarea class="form-control" name="note" id="editNote" rows="3" placeholder="Ví dụ: Giá đã bao gồm khuyến mãi 20%. Giá có thể thay đổi tùy theo đại lý..."></textarea>
+                    <small class="form-text">Ghi chú này sẽ hiển thị trên trang chi tiết xe để khách hàng xem</small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Hiệu lực từ</label>
@@ -215,21 +271,178 @@
 
 @section Scripts {
     <script>
-        function editPolicy(id, vehicleName, msrp, wholesalePrice, validFrom, validTo) {
-            document.getElementById('editPolicyId').value = id;
-            document.getElementById('editVehicleName').value = vehicleName;
-            document.getElementById('editMsrp').value = msrp;
-            document.getElementById('editWholesalePrice').value = wholesalePrice;
-            document.getElementById('editValidFrom').value = validFrom;
-            document.getElementById('editValidTo').value = validTo || '';
-            document.getElementById('editModal').style.display = 'flex';
+        function getDiscountPercent() {
+            // Ưu tiên % giảm giá trực tiếp, nếu không có thì lấy từ promotion
+            var discountInput = document.getElementById('createDiscountPercent');
+            if (discountInput && discountInput.value && parseFloat(discountInput.value) > 0) {
+                return parseFloat(discountInput.value);
+            }
+
+            // Nếu không có input trực tiếp, lấy từ promotion
+            var promotionSelect = document.getElementById('createPromotionId');
+            if (promotionSelect && promotionSelect.value) {
+                var selectedOption = promotionSelect.options[promotionSelect.selectedIndex];
+                var ruleJson = selectedOption.getAttribute('data-rule');
+                
+                if (ruleJson) {
+                    try {
+                        var rule = JSON.parse(ruleJson);
+                        return rule.discountPercent || 0;
+                    } catch (e) {
+                        return 0;
+                    }
+                }
+            }
+
+            return 0;
         }
+
+        function calculatePrice() {
+            var msrpInput = document.getElementById('createMsrp');
+            var wholesaleInput = document.getElementById('createWholesalePrice');
+            var previewDiv = document.getElementById('pricePreview');
+            var discountedMsrpSpan = document.getElementById('discountedMsrp');
+            var discountedWholesaleSpan = document.getElementById('discountedWholesale');
+
+            if (!msrpInput.value || !wholesaleInput.value) {
+                previewDiv.style.display = 'none';
+                return;
+            }
+
+            var discountPercent = getDiscountPercent();
+            
+            if (discountPercent > 0) {
+                var originalMsrp = parseFloat(msrpInput.value);
+                var originalWholesale = parseFloat(wholesaleInput.value);
+                
+                var discountedMsrp = originalMsrp * (1 - discountPercent / 100);
+                var discountedWholesale = originalWholesale * (1 - discountPercent / 100);
+                
+                discountedMsrpSpan.textContent = 'MSRP: ' + originalMsrp.toLocaleString('vi-VN') + ' VND → ' + discountedMsrp.toLocaleString('vi-VN') + ' VND (giảm ' + discountPercent + '%)';
+                discountedWholesaleSpan.textContent = 'Giá sỉ: ' + originalWholesale.toLocaleString('vi-VN') + ' VND → ' + discountedWholesale.toLocaleString('vi-VN') + ' VND (giảm ' + discountPercent + '%)';
+                previewDiv.style.display = 'block';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+
+        function onPromotionChange() {
+            // Khi chọn promotion, clear input % giảm giá trực tiếp
+            var discountInput = document.getElementById('createDiscountPercent');
+            if (discountInput) {
+                discountInput.value = '';
+            }
+            calculatePrice();
+        }
+
+        function onDiscountPercentChange() {
+            // Khi nhập % trực tiếp, clear promotion selection
+            var promotionSelect = document.getElementById('createPromotionId');
+            if (promotionSelect) {
+                promotionSelect.value = '';
+            }
+            calculatePrice();
+        }
+
+        function calculateEditPrice() {
+            var discountInput = document.getElementById('editDiscountPercent');
+            var msrpInput = document.getElementById('editMsrp');
+            var wholesaleInput = document.getElementById('editWholesalePrice');
+            var previewDiv = document.getElementById('editPricePreview');
+            var discountedMsrpSpan = document.getElementById('editDiscountedMsrp');
+            var discountedWholesaleSpan = document.getElementById('editDiscountedWholesale');
+
+            if (!msrpInput.value || !wholesaleInput.value) {
+                previewDiv.style.display = 'none';
+                return;
+            }
+
+            var discountPercent = discountInput && discountInput.value ? parseFloat(discountInput.value) : 0;
+            
+            if (discountPercent > 0) {
+                var originalMsrp = parseFloat(msrpInput.value);
+                var originalWholesale = parseFloat(wholesaleInput.value);
+                
+                var discountedMsrp = originalMsrp * (1 - discountPercent / 100);
+                var discountedWholesale = originalWholesale * (1 - discountPercent / 100);
+                
+                discountedMsrpSpan.textContent = 'MSRP: ' + originalMsrp.toLocaleString('vi-VN') + ' VND → ' + discountedMsrp.toLocaleString('vi-VN') + ' VND (giảm ' + discountPercent + '%)';
+                discountedWholesaleSpan.textContent = 'Giá sỉ: ' + originalWholesale.toLocaleString('vi-VN') + ' VND → ' + discountedWholesale.toLocaleString('vi-VN') + ' VND (giảm ' + discountPercent + '%)';
+                previewDiv.style.display = 'block';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+
+        function openEditModal(button) {
+            try {
+                var id = button.getAttribute('data-policy-id');
+                var vehicleName = button.getAttribute('data-vehicle-name') || '';
+                var msrp = button.getAttribute('data-msrp') || '0';
+                var wholesalePrice = button.getAttribute('data-wholesale-price') || '0';
+                var validFrom = button.getAttribute('data-valid-from') || '';
+                var validTo = button.getAttribute('data-valid-to') || '';
+                var note = button.getAttribute('data-note') || '';
+
+                // Decode HTML entities
+                vehicleName = vehicleName.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                note = note.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+
+                var editPolicyId = document.getElementById('editPolicyId');
+                var editVehicleName = document.getElementById('editVehicleName');
+                var editMsrp = document.getElementById('editMsrp');
+                var editWholesalePrice = document.getElementById('editWholesalePrice');
+                var editDiscountPercent = document.getElementById('editDiscountPercent');
+                var editNote = document.getElementById('editNote');
+                var editValidFrom = document.getElementById('editValidFrom');
+                var editValidTo = document.getElementById('editValidTo');
+                var editPricePreview = document.getElementById('editPricePreview');
+                var editModal = document.getElementById('editModal');
+
+                if (!editPolicyId || !editVehicleName || !editMsrp || !editWholesalePrice || !editModal) {
+                    console.error('Edit modal elements not found');
+                    alert('Có lỗi xảy ra. Vui lòng tải lại trang.');
+                    return;
+                }
+
+                editPolicyId.value = id;
+                editVehicleName.value = vehicleName;
+                editMsrp.value = msrp;
+                editWholesalePrice.value = wholesalePrice;
+                if (editDiscountPercent) editDiscountPercent.value = '';
+                if (editNote) editNote.value = note;
+                if (editValidFrom) editValidFrom.value = validFrom;
+                if (editValidTo) editValidTo.value = validTo;
+                if (editPricePreview) editPricePreview.style.display = 'none';
+                editModal.style.display = 'flex';
+            } catch (error) {
+                console.error('Error opening edit modal:', error);
+                alert('Có lỗi xảy ra khi mở form chỉnh sửa: ' + error.message);
+            }
+        }
+
+        // Attach event listeners to all edit buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            var editButtons = document.querySelectorAll('.edit-policy-btn');
+            editButtons.forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openEditModal(this);
+                });
+            });
+        });
 
         function deletePolicy(id, vehicleName) {
             if (confirm('Bạn có chắc chắn muốn xóa chính sách giá cho "' + vehicleName + '"? Hành động này không thể hoàn tác.')) {
                 var form = document.createElement('form');
                 form.method = 'post';
                 form.action = '?handler=DeletePolicy';
+                
+                var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (token) {
+                    var tokenInput = token.cloneNode(true);
+                    form.appendChild(tokenInput);
+                }
                 
                 var input = document.createElement('input');
                 input.type = 'hidden';
@@ -241,6 +454,33 @@
                 form.submit();
             }
         }
+
+        // Close modal when clicking outside
+        document.getElementById('createModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+
+        // Auto-open edit modal if there's an error
+        @if (TempData["EditError"] != null)
+        {
+            <text>
+            document.addEventListener('DOMContentLoaded', function() {
+                var editModal = document.getElementById('editModal');
+                if (editModal) {
+                    editModal.style.display = 'flex';
+                }
+            });
+            </text>
+        }
+
+        // Close edit modal when clicking outside
+        document.getElementById('editModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
     </script>
 }
 

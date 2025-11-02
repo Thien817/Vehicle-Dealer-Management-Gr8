@@ -10,13 +10,22 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
     public class EditModel : PageModel
     {
         private readonly IVehicleService _vehicleService;
+        private readonly IPricePolicyService _pricePolicyService;
+        private readonly IActivityLogService _activityLogService;
+        private readonly INotificationService _notificationService;
         private readonly ApplicationDbContext _context; // Tạm thời cần cho unique validation
 
         public EditModel(
             IVehicleService vehicleService,
+            IPricePolicyService pricePolicyService,
+            IActivityLogService activityLogService,
+            INotificationService notificationService,
             ApplicationDbContext context)
         {
             _vehicleService = vehicleService;
+            _pricePolicyService = pricePolicyService;
+            _activityLogService = activityLogService;
+            _notificationService = notificationService;
             _context = context;
         }
 
@@ -64,6 +73,9 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
                 }
             }
 
+            // Get active price policy
+            var pricePolicy = await _pricePolicyService.GetActivePricePolicyAsync(vehicle.Id, null);
+
             Vehicle = new VehicleEditViewModel
             {
                 Id = vehicle.Id,
@@ -77,7 +89,9 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
                 Acceleration = specs.GetValueOrDefault("acceleration", ""),
                 MaxSpeed = specs.GetValueOrDefault("maxSpeed", ""),
                 Seats = specs.ContainsKey("seats") && int.TryParse(specs["seats"], out var seats) ? seats : null,
-                OtherSpecs = vehicle.SpecJson
+                OtherSpecs = vehicle.SpecJson,
+                Msrp = pricePolicy?.Msrp ?? 0,
+                WholesalePrice = pricePolicy?.WholesalePrice ?? 0
             };
 
             return Page();
@@ -95,7 +109,11 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
             string? acceleration,
             string? maxSpeed,
             int? seats,
-            string? otherSpecs)
+            string? otherSpecs,
+            decimal? msrp,
+            decimal? wholesalePrice,
+            decimal? discountPercent,
+            string? priceNote)
         {
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
@@ -168,7 +186,71 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
 
             await _vehicleService.UpdateVehicleAsync(vehicle);
 
-            TempData["Success"] = "Cập nhật thông tin xe thành công!";
+            // Update or create price policy if provided
+            if (msrp.HasValue && msrp.Value > 0)
+            {
+                var existingPolicy = await _pricePolicyService.GetActivePricePolicyAsync(vehicleId, null);
+                if (existingPolicy != null)
+                {
+                    // Update existing policy - invalidate old one and create new
+                    existingPolicy.ValidTo = DateTime.UtcNow.AddSeconds(-1);
+                    await _pricePolicyService.UpdatePricePolicyAsync(existingPolicy);
+                }
+
+                // Calculate final price if discount is applied
+                decimal finalMsrp = msrp.Value;
+                decimal? finalWholesalePrice = wholesalePrice ?? msrp.Value * 0.9m;
+                decimal finalDiscountPercent = 0;
+
+                if (discountPercent.HasValue && discountPercent.Value > 0)
+                {
+                    finalDiscountPercent = discountPercent.Value;
+                    finalMsrp = msrp.Value * (1 - discountPercent.Value / 100);
+                    finalWholesalePrice = (wholesalePrice ?? msrp.Value * 0.9m) * (1 - discountPercent.Value / 100);
+                }
+
+                // Create new price policy
+                var newPolicy = new Vehicle_Dealer_Management.DAL.Models.PricePolicy
+                {
+                    VehicleId = vehicleId,
+                    DealerId = null, // Global price
+                    Msrp = finalMsrp,
+                    WholesalePrice = finalWholesalePrice,
+                    PromotionId = null, // No promotion if using direct discount
+                    Note = string.IsNullOrWhiteSpace(priceNote) ? null : priceNote.Trim(),
+                    ValidFrom = DateTime.UtcNow,
+                    ValidTo = null,
+                    CreatedDate = DateTime.UtcNow
+                };
+
+                await _pricePolicyService.CreatePricePolicyAsync(newPolicy);
+
+                // Create notification if discount is applied
+                if (finalDiscountPercent > 0)
+                {
+                    await _notificationService.CreatePromotionNotificationAsync(
+                        vehicleId,
+                        $"{vehicle.ModelName} {vehicle.VariantName}",
+                        finalDiscountPercent);
+                }
+            }
+
+            // Log activity
+            var userIdInt = int.Parse(userId);
+            var userRole = HttpContext.Session.GetString("UserRole") ?? "EVM_STAFF";
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            
+            await _activityLogService.LogActivityAsync(
+                userId: userIdInt,
+                action: "UPDATE",
+                entityType: "Vehicle",
+                entityId: vehicle.Id,
+                entityName: $"{vehicle.ModelName} {vehicle.VariantName}",
+                description: "Đã chỉnh sửa xe thành công",
+                userRole: userRole,
+                ipAddress: ipAddress);
+
+            TempData["Success"] = "Đã chỉnh sửa xe thành công!";
             return RedirectToPage("/EVM/Vehicles/Index");
         }
 
@@ -186,6 +268,8 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
             public string MaxSpeed { get; set; } = "";
             public int? Seats { get; set; }
             public string? OtherSpecs { get; set; }
+            public decimal Msrp { get; set; }
+            public decimal WholesalePrice { get; set; }
         }
     }
 }

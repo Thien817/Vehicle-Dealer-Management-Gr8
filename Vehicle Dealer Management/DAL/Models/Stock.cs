@@ -10,18 +10,20 @@ namespace Vehicle_Dealer_Management.DAL.Models
 
         [Required]
         [StringLength(10)]
-        public string OwnerType { get; set; } = string.Empty; // EVM hoặc DEALER
+        public string OwnerType { get; set; } = string.Empty;
 
         [Required]
-        public int OwnerId { get; set; } // ID của EVM (0) hoặc Dealer
+        public int OwnerId { get; set; } 
 
         [Required]
         public int VehicleId { get; set; }
 
         [Required]
         [StringLength(20)]
-        public string ColorCode { get; set; } = string.Empty; // Mã màu (ví dụ: "RED", "BLUE", "BLACK")
+        public string ColorCode { get; set; } = string.Empty; 
 
+        [StringLength(250)]
+        public string? Name { get; set; } 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Qty { get; set; } = 0; // Số lượng tồn kho (≥ 0)

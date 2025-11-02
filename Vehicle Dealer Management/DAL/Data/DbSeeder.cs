@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vehicle_Dealer_Management.DAL.Models;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace Vehicle_Dealer_Management.DAL.Data
 {
@@ -209,6 +210,7 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         DealerId = null,
                         Msrp = 2500000000, // 2.5 tỷ
                         WholesalePrice = 2300000000, // 2.3 tỷ
+                        Note = "Giá niêm yết chính thức từ nhà sản xuất. Giá có thể thay đổi tùy theo khuyến mãi và đại lý. Vui lòng liên hệ đại lý để biết giá chính xác nhất.",
                         ValidFrom = DateTime.UtcNow.AddMonths(-1),
                         ValidTo = null,
                         CreatedDate = DateTime.UtcNow
@@ -220,6 +222,7 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         DealerId = null,
                         Msrp = 1500000000, // 1.5 tỷ
                         WholesalePrice = 1400000000, // 1.4 tỷ
+                        Note = "Giá đã bao gồm VAT. Hiện đang có chương trình khuyến mãi hấp dẫn cho khách hàng đặt mua trong tháng này. Giá có thể thay đổi tùy theo đại lý.",
                         ValidFrom = DateTime.UtcNow.AddMonths(-1),
                         ValidTo = null,
                         CreatedDate = DateTime.UtcNow
@@ -231,6 +234,7 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         DealerId = null,
                         Msrp = 3500000000, // 3.5 tỷ
                         WholesalePrice = 3300000000, // 3.3 tỷ
+                        Note = "Giá niêm yết cho phiên bản Performance cao cấp. Bao gồm đầy đủ phụ kiện tiêu chuẩn. Hỗ trợ trả góp lãi suất ưu đãi từ các ngân hàng đối tác.",
                         ValidFrom = DateTime.UtcNow.AddMonths(-1),
                         ValidTo = null,
                         CreatedDate = DateTime.UtcNow
@@ -255,6 +259,7 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         OwnerId = 0, // 0 = EVM
                         VehicleId = vehicles[0].Id,
                         ColorCode = "BLACK",
+                        Name = $"{vehicles[0].ModelName} {vehicles[0].VariantName}",
                         Qty = 10,
                         CreatedDate = DateTime.UtcNow
                     },
@@ -264,6 +269,7 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         OwnerId = 0,
                         VehicleId = vehicles[0].Id,
                         ColorCode = "WHITE",
+                        Name = $"{vehicles[0].ModelName} {vehicles[0].VariantName}",
                         Qty = 8,
                         CreatedDate = DateTime.UtcNow
                     },
@@ -273,6 +279,7 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         OwnerId = 0,
                         VehicleId = vehicles[1].Id,
                         ColorCode = "BLACK",
+                        Name = $"{vehicles[1].ModelName} {vehicles[1].VariantName}",
                         Qty = 15,
                         CreatedDate = DateTime.UtcNow
                     },
@@ -282,6 +289,7 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         OwnerId = 0,
                         VehicleId = vehicles[1].Id,
                         ColorCode = "RED",
+                        Name = $"{vehicles[1].ModelName} {vehicles[1].VariantName}",
                         Qty = 12,
                         CreatedDate = DateTime.UtcNow
                     },
@@ -291,6 +299,7 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         OwnerId = 0,
                         VehicleId = vehicles[2].Id,
                         ColorCode = "BLACK",
+                        Name = $"{vehicles[2].ModelName} {vehicles[2].VariantName}",
                         Qty = 5,
                         CreatedDate = DateTime.UtcNow
                     }
@@ -298,6 +307,27 @@ namespace Vehicle_Dealer_Management.DAL.Data
 
                 context.Stocks.AddRange(stocks);
                 context.SaveChanges();
+            }
+            else
+            {
+                // Update existing Stocks to have Name field filled from Vehicle
+                var stocksWithoutName = context.Stocks
+                    .Where(s => string.IsNullOrEmpty(s.Name))
+                    .ToList();
+
+                foreach (var stock in stocksWithoutName)
+                {
+                    var vehicle = context.Vehicles.Find(stock.VehicleId);
+                    if (vehicle != null)
+                    {
+                        stock.Name = $"{vehicle.ModelName} {vehicle.VariantName}";
+                    }
+                }
+
+                if (stocksWithoutName.Any())
+                {
+                    context.SaveChanges();
+                }
             }
 
             // Seed Customer Profiles
@@ -340,11 +370,58 @@ namespace Vehicle_Dealer_Management.DAL.Data
                         ValidFrom = DateTime.UtcNow,
                         ValidTo = DateTime.UtcNow.AddMonths(1),
                         CreatedDate = DateTime.UtcNow
+                    },
+                    new Promotion
+                    {
+                        Name = "Khuyến mãi đặc biệt",
+                        Scope = "GLOBAL",
+                        RuleJson = @"{""discountPercent"": 20}",
+                        ValidFrom = DateTime.UtcNow,
+                        ValidTo = DateTime.UtcNow.AddMonths(2),
+                        CreatedDate = DateTime.UtcNow
                     }
                 };
 
                 context.Promotions.AddRange(promotions);
                 context.SaveChanges();
+            }
+
+            // Seed Notifications - Chỉ tạo dữ liệu mẫu tối thiểu
+            // Notifications thực tế sẽ được tạo tự động từ business logic:
+            // - Khi tạo PricePolicy với Promotion (trong PricePolicies.cshtml.cs)
+            // - Khi có các events khác trong tương lai
+            // 
+            // Phần này chỉ tạo 1 notification chào mừng mẫu để test UI, 
+            // KHÔNG nên hard code notifications về promotions vì chúng sẽ được tạo tự động
+            if (!context.Notifications.Any())
+            {
+                var customerRole = context.Roles.FirstOrDefault(r => r.Code == "CUSTOMER");
+                
+                if (customerRole != null)
+                {
+                    var customerUsers = context.Users
+                        .Where(u => u.RoleId == customerRole.Id)
+                        .ToList();
+
+                    if (customerUsers.Any())
+                    {
+                        // Chỉ tạo notification chào mừng đơn giản để test UI
+                        // Notifications về promotions sẽ được tạo tự động khi EVM staff tạo PricePolicy với Promotion
+                        var welcomeNotifications = customerUsers.Select(customer => new Notification
+                        {
+                            UserId = customer.Id,
+                            Title = "Chào mừng bạn đến với EVM Dealer Portal!",
+                            Content = "Khám phá các mẫu xe điện mới nhất và các chương trình khuyến mãi hấp dẫn.",
+                            Type = "INFO",
+                            LinkUrl = "/Customer/Vehicles",
+                            IsRead = false,
+                            CreatedAt = DateTime.UtcNow.AddDays(-1)
+                        }).ToList();
+
+                        context.Notifications.AddRange(welcomeNotifications);
+                        context.SaveChanges();
+                    }
+                }
             }
         }
     }

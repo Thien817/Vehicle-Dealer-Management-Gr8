@@ -222,6 +222,24 @@
                     <h5 class="mb-0">@ViewData["Title"]</h5>
                 </div>
                 <div class="header-right">
+                    @if (userRole == "CUSTOMER")
+                    {
+                        <div style="position: relative; margin-right: 1rem;">
+                            <button id="notificationBell" class="btn btn-secondary" style="position: relative; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-bell"></i>
+                                <span id="notificationBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--error, #ef4444); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; font-weight: bold;">0</span>
+                            </button>
+                            <div id="notificationDropdown" style="display: none; position: absolute; top: 50px; right: 0; width: 350px; max-height: 500px; overflow-y: auto; background: var(--card-bg, #1a1a1a); border: 1px solid var(--border-color, #333); border-radius: var(--radius, 8px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000;">
+                                <div style="padding: 1rem; border-bottom: 1px solid var(--border-color, #333); display: flex; justify-content: space-between; align-items: center;">
+                                    <strong>Thông báo</strong>
+                                    <button onclick="markAllAsRead()" class="btn btn-sm btn-secondary" style="font-size: 0.875rem;">Đánh dấu đã đọc tất cả</button>
+                                </div>
+                                <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
+                                    <!-- Notifications will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    }
                     <div class="user-menu">
                         <div class="user-avatar">
                             @userName.Substring(0, 1).ToUpper()
@@ -259,5 +277,139 @@
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
+
+@if (userRole == "CUSTOMER")
+{
+    <script>
+        let notificationCount = 0;
+
+        // Load notifications
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/Customer/Notifications/GetUnread');
+                if (response.ok) {
+                    const data = await response.json();
+                    notificationCount = data.count || 0;
+                    updateNotificationBadge();
+                    
+                    if (data.notifications && data.notifications.length > 0) {
+                        renderNotifications(data.notifications);
+                    } else {
+                        document.getElementById('notificationList').innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Không có thông báo mới</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+            }
+        }
+
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notificationBadge');
+            if (notificationCount > 0) {
+                badge.textContent = notificationCount > 99 ? '99+' : notificationCount;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function renderNotifications(notifications) {
+            const list = document.getElementById('notificationList');
+            if (notifications.length === 0) {
+                list.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Không có thông báo mới</div>';
+                return;
+            }
+
+            list.innerHTML = notifications.map(n => {
+                const escapedTitle = (n.title || '').replace(/'/g, "\\'");
+                const escapedContent = (n.content || '').replace(/'/g, "\\'");
+                const escapedLink = (n.linkUrl || '').replace(/'/g, "\\'");
+                const date = new Date(n.createdAt).toLocaleString('vi-VN');
+                return `
+                    <div class="notification-item" data-id="${n.id}" style="padding: 1rem; border-bottom: 1px solid var(--border-color, #333); cursor: pointer; ${n.isRead ? '' : 'background: rgba(59, 130, 246, 0.1);'}" onclick="markAsReadAndNavigate(${n.id}, '${escapedLink}')">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <strong style="color: var(--text-heading);">${escapedTitle}</strong>
+                            ${n.isRead ? '' : '<span style="width: 8px; height: 8px; background: var(--accent-cyan, #06b6d4); border-radius: 50%; display: inline-block;"></span>'}
+                        </div>
+                        ${escapedContent ? `<div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">${escapedContent}</div>` : ''}
+                        <div style="color: var(--text-muted); font-size: 0.75rem;">${date}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function markAsRead(notificationId) {
+            try {
+                const formData = new FormData();
+                const response = await fetch(`/Customer/Notifications/MarkAsRead?id=${notificationId}`, { 
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                });
+                if (response.ok) {
+                    loadNotifications();
+                }
+            } catch (error) {
+                console.error('Error marking as read:', error);
+            }
+        }
+
+        async function markAllAsRead() {
+            try {
+                const response = await fetch('/Customer/Notifications/MarkAllAsRead', { 
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                });
+                if (response.ok) {
+                    loadNotifications();
+                }
+            } catch (error) {
+                console.error('Error marking all as read:', error);
+            }
+        }
+
+        function markAsReadAndNavigate(id, linkUrl) {
+            markAsRead(id);
+            if (linkUrl) {
+                window.location.href = linkUrl;
+            }
+        }
+
+        // Toggle notification dropdown
+        document.addEventListener('DOMContentLoaded', function() {
+            const bell = document.getElementById('notificationBell');
+            if (bell) {
+                bell.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const dropdown = document.getElementById('notificationDropdown');
+                    if (dropdown) {
+                        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                        if (dropdown.style.display === 'block') {
+                            loadNotifications();
+                        }
+                    }
+                });
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const bell = document.getElementById('notificationBell');
+                const dropdown = document.getElementById('notificationDropdown');
+                if (bell && dropdown && !bell.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+
+            // Load notifications on page load
+            loadNotifications();
+
+            // Refresh notifications every 30 seconds
+            setInterval(loadNotifications, 30000);
+        });
+    </script>
+}
 </body>
 </html>

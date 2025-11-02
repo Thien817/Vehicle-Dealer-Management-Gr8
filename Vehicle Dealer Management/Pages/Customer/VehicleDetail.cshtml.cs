@@ -76,6 +76,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 Status = vehicle.Status,
                 Specs = specs,
                 Price = pricePolicy?.Msrp ?? 0,
+                PriceNote = pricePolicy?.Note,
                 Dealers = dealers
             };
 
@@ -91,6 +92,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             public string Status { get; set; } = "";
             public Dictionary<string, string> Specs { get; set; } = new();
             public decimal Price { get; set; }
+            public string? PriceNote { get; set; }
             public List<DealerSimpleViewModel> Dealers { get; set; } = new();
         }
 

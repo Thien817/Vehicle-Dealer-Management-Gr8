@@ -13,11 +13,16 @@ namespace Vehicle_Dealer_Management.Pages.Auth
     {
         private readonly ApplicationDbContext _context;
         private readonly ICustomerService _customerService;
+        private readonly IActivityLogService _activityLogService;
 
-        public RegisterModel(ApplicationDbContext context, ICustomerService customerService)
+        public RegisterModel(
+            ApplicationDbContext context, 
+            ICustomerService customerService,
+            IActivityLogService activityLogService)
         {
             _context = context;
             _customerService = customerService;
+            _activityLogService = activityLogService;
         }
 
         [BindProperty]
@@ -110,6 +115,18 @@ namespace Vehicle_Dealer_Management.Pages.Auth
             // So we'll still use _context for CustomerProfile
             _context.CustomerProfiles.Add(customerProfile);
             await _context.SaveChangesAsync();
+
+            // Log registration activity
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _activityLogService.LogActivityAsync(
+                userId: user.Id,
+                action: "REGISTER",
+                entityType: "User",
+                entityId: user.Id,
+                entityName: user.FullName,
+                description: "Đăng ký tài khoản mới thành công",
+                userRole: "CUSTOMER",
+                ipAddress: ipAddress);
 
             SuccessMessage = "Đăng ký thành công! Vui lòng đăng nhập.";
             

@@ -23,6 +23,11 @@ namespace Vehicle_Dealer_Management.DAL.Models
         [Column(TypeName = "nvarchar(max)")]
         public string? DiscountRuleJson { get; set; } // JSON chứa quy tắc giảm giá
 
+        public int? PromotionId { get; set; } // Liên kết với Promotion để tính giá giảm
+
+        [Column(TypeName = "nvarchar(max)")]
+        public string? Note { get; set; } // Ghi chú về giá, đặc biệt khi có giảm giá
+
         [Required]
         public DateTime ValidFrom { get; set; } // Ngày bắt đầu hiệu lực
 
@@ -36,6 +41,9 @@ namespace Vehicle_Dealer_Management.DAL.Models
 
         [ForeignKey("DealerId")]
         public virtual Dealer? Dealer { get; set; }
+
+        [ForeignKey("PromotionId")]
+        public virtual Promotion? Promotion { get; set; }
     }
 }
 

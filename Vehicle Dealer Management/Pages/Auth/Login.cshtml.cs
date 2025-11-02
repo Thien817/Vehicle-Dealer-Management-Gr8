@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Vehicle_Dealer_Management.DAL.Data;
+using Vehicle_Dealer_Management.BLL.IService;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -10,10 +11,12 @@ namespace Vehicle_Dealer_Management.Pages.Auth
     public class LoginModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly IActivityLogService _activityLogService;
 
-        public LoginModel(ApplicationDbContext context)
+        public LoginModel(ApplicationDbContext context, IActivityLogService activityLogService)
         {
             _context = context;
+            _activityLogService = activityLogService;
         }
 
         [BindProperty]
@@ -67,6 +70,18 @@ namespace Vehicle_Dealer_Management.Pages.Auth
                 HttpContext.Session.SetString("DealerId", user.DealerId.Value.ToString());
                 HttpContext.Session.SetString("DealerName", user.Dealer?.Name ?? "");
             }
+
+            // Log login activity
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _activityLogService.LogActivityAsync(
+                userId: user.Id,
+                action: "LOGIN",
+                entityType: "User",
+                entityId: user.Id,
+                entityName: user.FullName,
+                description: "Đăng nhập thành công",
+                userRole: user.Role.Code,
+                ipAddress: ipAddress);
 
             // Redirect based on role
             return user.Role.Code switch

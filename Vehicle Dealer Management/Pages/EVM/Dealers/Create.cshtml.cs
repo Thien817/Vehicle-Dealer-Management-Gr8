@@ -9,10 +9,14 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Dealers
     public class CreateModel : PageModel
     {
         private readonly IDealerService _dealerService;
+        private readonly IActivityLogService _activityLogService;
 
-        public CreateModel(IDealerService dealerService)
+        public CreateModel(
+            IDealerService dealerService,
+            IActivityLogService activityLogService)
         {
             _dealerService = dealerService;
+            _activityLogService = activityLogService;
         }
 
         public string? ErrorMessage { get; set; }
@@ -161,7 +165,26 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Dealers
 
             await _dealerService.CreateDealerAsync(dealer);
 
-            TempData["Success"] = "Thêm đại lý mới thành công!";
+            // Log activity
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (!string.IsNullOrEmpty(userIdStr))
+            {
+                var userIdInt = int.Parse(userIdStr);
+                var userRole = HttpContext.Session.GetString("UserRole") ?? "EVM_STAFF";
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                
+                await _activityLogService.LogActivityAsync(
+                    userId: userIdInt,
+                    action: "CREATE",
+                    entityType: "Dealer",
+                    entityId: dealer.Id,
+                    entityName: dealer.Name,
+                    description: "Đã thêm đại lý mới thành công",
+                    userRole: userRole,
+                    ipAddress: ipAddress);
+            }
+
+            TempData["Success"] = "Đã thêm đại lý mới thành công!";
             return RedirectToPage("/EVM/Dealers");
         }
     }

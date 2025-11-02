@@ -12,7 +12,7 @@ using Vehicle_Dealer_Management.DAL.Data;
 namespace Vehicle_Dealer_Management.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251101194104_InitialCreate")]
+    [Migration("20251102192159_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -24,6 +24,56 @@ namespace Vehicle_Dealer_Management.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.ActivityLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntityName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserRole")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ActivityLogs");
+                });
 
             modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.Customer", b =>
                 {
@@ -317,6 +367,57 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.ToTable("Feedbacks");
                 });
 
+            modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LinkUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RelatedEntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RelatedEntityType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.Payment", b =>
                 {
                     b.Property<int>("Id")
@@ -372,6 +473,12 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.Property<decimal>("Msrp")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PromotionId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("ValidFrom")
                         .HasColumnType("datetime2");
 
@@ -387,6 +494,8 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DealerId");
+
+                    b.HasIndex("PromotionId");
 
                     b.HasIndex("VehicleId", "DealerId", "ValidFrom", "ValidTo");
 
@@ -625,6 +734,10 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Name")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
                     b.Property<int>("OwnerId")
                         .HasColumnType("int");
 
@@ -796,6 +909,17 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.ToTable("Vehicles");
                 });
 
+            modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.ActivityLog", b =>
+                {
+                    b.HasOne("Vehicle_Dealer_Management.DAL.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.CustomerProfile", b =>
                 {
                     b.HasOne("Vehicle_Dealer_Management.DAL.Models.User", "User")
@@ -860,6 +984,17 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.Navigation("Dealer");
                 });
 
+            modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.Notification", b =>
+                {
+                    b.HasOne("Vehicle_Dealer_Management.DAL.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.Payment", b =>
                 {
                     b.HasOne("Vehicle_Dealer_Management.DAL.Models.SalesDocument", "SalesDocument")
@@ -878,6 +1013,10 @@ namespace Vehicle_Dealer_Management.Migrations
                         .HasForeignKey("DealerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Vehicle_Dealer_Management.DAL.Models.Promotion", "Promotion")
+                        .WithMany()
+                        .HasForeignKey("PromotionId");
+
                     b.HasOne("Vehicle_Dealer_Management.DAL.Models.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
@@ -885,6 +1024,8 @@ namespace Vehicle_Dealer_Management.Migrations
                         .IsRequired();
 
                     b.Navigation("Dealer");
+
+                    b.Navigation("Promotion");
 
                     b.Navigation("Vehicle");
                 });

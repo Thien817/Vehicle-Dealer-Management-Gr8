@@ -11,15 +11,18 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
         private readonly IVehicleService _vehicleService;
         private readonly IPricePolicyService _pricePolicyService;
         private readonly IStockService _stockService;
+        private readonly IActivityLogService _activityLogService;
 
         public CreateModel(
             IVehicleService vehicleService,
             IPricePolicyService pricePolicyService,
-            IStockService stockService)
+            IStockService stockService,
+            IActivityLogService activityLogService)
         {
             _vehicleService = vehicleService;
             _pricePolicyService = pricePolicyService;
             _stockService = stockService;
+            _activityLogService = activityLogService;
         }
 
         public string? ErrorMessage { get; set; }
@@ -134,6 +137,22 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
                     initialStock.Value);
             }
 
+            // Log activity
+            var userIdInt = int.Parse(userId);
+            var userRole = HttpContext.Session.GetString("UserRole") ?? "EVM_STAFF";
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            
+            await _activityLogService.LogActivityAsync(
+                userId: userIdInt,
+                action: "CREATE",
+                entityType: "Vehicle",
+                entityId: createdVehicle.Id,
+                entityName: $"{createdVehicle.ModelName} {createdVehicle.VariantName}",
+                description: "Đã thêm xe mới thành công",
+                userRole: userRole,
+                ipAddress: ipAddress);
+
+            TempData["Success"] = "Đã thêm xe mới thành công!";
             return RedirectToPage("/EVM/Vehicles/Index");
         }
     }

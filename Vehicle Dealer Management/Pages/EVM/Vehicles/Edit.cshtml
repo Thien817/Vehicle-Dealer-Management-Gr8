@@ -96,6 +96,49 @@
                     </div>
                 </div>
 
+                <!-- Pricing -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Giá bán</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">% Giảm giá (tùy chọn)</label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="number" class="form-control" id="vehicleDiscountPercent" name="discountPercent" min="0" max="100" step="0.1" placeholder="0" onchange="calculateVehiclePrice()" style="flex: 1;" />
+                                <span style="color: var(--text-muted);">%</span>
+                            </div>
+                            <small class="form-text">Nhập % giảm giá để tự động tính giá cuối cùng. Hệ thống sẽ tự động tạo chính sách giá mới với giảm giá này.</small>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="form-group">
+                                <label class="form-label">Giá MSRP (VND) <span style="color: var(--text-muted);">(giá gốc)</span></label>
+                                <input type="number" class="form-control" id="vehicleMsrp" name="msrp" value="@Model.Vehicle.Msrp.ToString("0")" placeholder="2500000000" step="1000000" onchange="calculateVehiclePrice()" />
+                                <small class="form-text">Giá niêm yết (Manufacturer's Suggested Retail Price)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Giá buôn (VND) <span style="color: var(--text-muted);">(giá gốc)</span></label>
+                                <input type="number" class="form-control" id="vehicleWholesalePrice" name="wholesalePrice" value="@Model.Vehicle.WholesalePrice.ToString("0")" placeholder="2300000000" step="1000000" onchange="calculateVehiclePrice()" />
+                                <small class="form-text">Giá bán buôn cho đại lý</small>
+                            </div>
+                        </div>
+                        <div class="alert alert-info" id="vehiclePricePreview" style="display: none; margin-top: 1rem; padding: 0.75rem; background: var(--info-bg, rgba(59, 130, 246, 0.1)); border: 1px solid var(--info, #3b82f6); border-radius: var(--radius-sm); color: var(--info, #3b82f6); font-size: 0.875rem;">
+                            <strong>Giá sau giảm:</strong><br>
+                            <span id="vehicleDiscountedMsrp"></span><br>
+                            <span id="vehicleDiscountedWholesale"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ghi chú về giá (tùy chọn)</label>
+                            <textarea class="form-control" name="priceNote" id="vehiclePriceNote" rows="3" placeholder="Ví dụ: Giá đã bao gồm khuyến mãi 20%. Giá có thể thay đổi tùy theo đại lý..."></textarea>
+                            <small class="form-text">Ghi chú này sẽ hiển thị trên trang chi tiết xe để khách hàng xem</small>
+                        </div>
+                        <div class="alert alert-info" style="margin-top: 1rem; padding: 0.75rem; background: var(--info-bg, rgba(59, 130, 246, 0.1)); border: 1px solid var(--info, #3b82f6); border-radius: var(--radius-sm); color: var(--info, #3b82f6); font-size: 0.875rem;">
+                            <i class="bi bi-info-circle"></i> <strong>Lưu ý:</strong> Nếu để trống, giá hiện tại sẽ được giữ nguyên. Nếu nhập % giảm giá, hệ thống sẽ tạo chính sách giá mới với giá đã giảm và thông báo cho customers.
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Specifications -->
                 <div class="card">
                     <div class="card-header">
@@ -217,6 +260,37 @@
         
         document.querySelector('input[name="modelName"]')?.addEventListener('input', updatePreview);
         document.querySelector('input[name="variantName"]')?.addEventListener('input', updatePreview);
+
+        // Calculate vehicle price with discount
+        function calculateVehiclePrice() {
+            var discountInput = document.getElementById('vehicleDiscountPercent');
+            var msrpInput = document.getElementById('vehicleMsrp');
+            var wholesaleInput = document.getElementById('vehicleWholesalePrice');
+            var previewDiv = document.getElementById('vehiclePricePreview');
+            var discountedMsrpSpan = document.getElementById('vehicleDiscountedMsrp');
+            var discountedWholesaleSpan = document.getElementById('vehicleDiscountedWholesale');
+
+            if (!msrpInput.value || !wholesaleInput.value) {
+                previewDiv.style.display = 'none';
+                return;
+            }
+
+            var discountPercent = discountInput && discountInput.value ? parseFloat(discountInput.value) : 0;
+            
+            if (discountPercent > 0) {
+                var originalMsrp = parseFloat(msrpInput.value);
+                var originalWholesale = parseFloat(wholesaleInput.value);
+                
+                var discountedMsrp = originalMsrp * (1 - discountPercent / 100);
+                var discountedWholesale = originalWholesale * (1 - discountPercent / 100);
+                
+                discountedMsrpSpan.textContent = 'MSRP: ' + originalMsrp.toLocaleString('vi-VN') + ' VND → ' + discountedMsrp.toLocaleString('vi-VN') + ' VND (giảm ' + discountPercent + '%)';
+                discountedWholesaleSpan.textContent = 'Giá sỉ: ' + originalWholesale.toLocaleString('vi-VN') + ' VND → ' + discountedWholesale.toLocaleString('vi-VN') + ' VND (giảm ' + discountPercent + '%)';
+                previewDiv.style.display = 'block';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
 
         // Preview specs
         const updateSpecs = () => {

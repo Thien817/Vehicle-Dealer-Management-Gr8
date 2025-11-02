@@ -81,7 +81,16 @@
                     <div style="font-size: 2.5rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 1rem;">
                         @Model.Vehicle.Price.ToString("N0") VND
                     </div>
-                    <p class="text-muted" style="font-size: 0.875rem;">Giá có thể thay đổi tùy theo khuyến mãi và đại lý</p>
+                    @if (!string.IsNullOrWhiteSpace(Model.Vehicle.PriceNote))
+                    {
+                        <div style="padding: 0.75rem; background: rgba(6, 182, 212, 0.1); border-left: 3px solid var(--accent-cyan); border-radius: var(--radius-sm); margin-bottom: 0.75rem; text-align: left;">
+                            <p style="margin: 0; font-size: 0.875rem; color: var(--text); line-height: 1.5;">@Model.Vehicle.PriceNote</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted" style="font-size: 0.875rem;">Giá có thể thay đổi tùy theo khuyến mãi và đại lý</p>
+                    }
                 </div>
             </div>
         </div>

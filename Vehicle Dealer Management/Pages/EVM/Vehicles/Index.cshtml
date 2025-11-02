@@ -48,9 +48,12 @@
                                     <a href="/EVM/Vehicles/Edit?id=@vehicle.Id" class="btn btn-secondary btn-sm">
                                         <i class="bi bi-pencil"></i> Sửa
                                     </a>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteVehicle(@vehicle.Id, '@vehicle.Name @vehicle.Variant')">
-                                        <i class="bi bi-trash"></i> Xóa
-                                    </button>
+                                    <form method="post" asp-page-handler="Delete" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa \'@vehicle.Name @vehicle.Variant\'?\\n\\nLưu ý: Nếu xe đã có trong đơn hàng/báo giá, hệ thống sẽ đổi trạng thái thành DISCONTINUED thay vì xóa.');">
+                                        <input type="hidden" name="vehicleId" value="@vehicle.Id" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bi bi-trash"></i> Xóa
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -87,24 +90,4 @@
     </script>
 }
 
-@section Scripts {
-    <script>
-        function deleteVehicle(id, vehicleName) {
-            if (confirm('Bạn có chắc chắn muốn xóa "' + vehicleName + '"?\n\nLưu ý: Nếu xe đã có trong đơn hàng/báo giá, hệ thống sẽ đổi trạng thái thành DISCONTINUED thay vì xóa.')) {
-                var form = document.createElement('form');
-                form.method = 'post';
-                form.action = '?handler=Delete';
-                
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'vehicleId';
-                input.value = id;
-                
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-    </script>
-}
 

@@ -63,10 +63,14 @@ namespace Vehicle_Dealer_Management.BLL.Services
             // Check if stock exists
             var existingStock = await _stockRepository.GetStockByOwnerAndVehicleAsync(ownerType, ownerId, vehicleId, colorCode);
 
+            // Set Name from Vehicle for easy viewing and comparison
+            var vehicleName = $"{vehicle.ModelName} {vehicle.VariantName}";
+
             if (existingStock != null)
             {
                 // Update existing stock
                 existingStock.Qty = qty;
+                existingStock.Name = vehicleName;
                 existingStock.UpdatedDate = DateTime.UtcNow;
                 await _stockRepository.UpdateAsync(existingStock);
                 return existingStock;
@@ -80,6 +84,7 @@ namespace Vehicle_Dealer_Management.BLL.Services
                     OwnerId = ownerId,
                     VehicleId = vehicleId,
                     ColorCode = colorCode,
+                    Name = vehicleName,
                     Qty = qty,
                     CreatedDate = DateTime.UtcNow
                 };
@@ -98,6 +103,16 @@ namespace Vehicle_Dealer_Management.BLL.Services
             if (stock == null)
             {
                 throw new KeyNotFoundException($"Stock with ID {stockId} not found");
+            }
+
+            // Update Name from Vehicle if Vehicle exists
+            if (stock.VehicleId > 0)
+            {
+                var vehicle = await _vehicleRepository.GetByIdAsync(stock.VehicleId);
+                if (vehicle != null)
+                {
+                    stock.Name = $"{vehicle.ModelName} {vehicle.VariantName}";
+                }
             }
 
             stock.Qty = newQty;
