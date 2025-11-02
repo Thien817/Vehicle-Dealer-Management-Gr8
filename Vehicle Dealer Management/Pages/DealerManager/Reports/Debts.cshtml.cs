@@ -31,7 +31,7 @@ namespace Vehicle_Dealer_Management.Pages.DealerManager.Reports
             
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(dealerId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var dealerIdInt = int.Parse(dealerId);

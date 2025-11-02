@@ -30,7 +30,7 @@ namespace Vehicle_Dealer_Management.Pages.Auth
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             User = await _context.Users
@@ -49,7 +49,7 @@ namespace Vehicle_Dealer_Management.Pages.Auth
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var user = await _context.Users
@@ -81,7 +81,7 @@ namespace Vehicle_Dealer_Management.Pages.Auth
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var user = await _context.Users
@@ -91,7 +91,7 @@ namespace Vehicle_Dealer_Management.Pages.Auth
 
             if (user == null)
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             // Verify current password

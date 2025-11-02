@@ -32,13 +32,13 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var user = await _context.Users.FindAsync(int.Parse(userId));
             if (user == null)
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             UserName = user.FullName;

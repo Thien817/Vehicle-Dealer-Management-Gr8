@@ -21,7 +21,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var vehicles = await _context.Vehicles.ToListAsync();
@@ -52,7 +52,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Vehicles
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var vehicle = await _context.Vehicles.FindAsync(vehicleId);

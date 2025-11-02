@@ -23,7 +23,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var order = await _context.DealerOrders
@@ -70,7 +70,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var order = await _context.DealerOrders.FindAsync(orderId);
@@ -97,7 +97,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var order = await _context.DealerOrders.FindAsync(orderId);

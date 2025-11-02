@@ -21,7 +21,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             // Get customer profile

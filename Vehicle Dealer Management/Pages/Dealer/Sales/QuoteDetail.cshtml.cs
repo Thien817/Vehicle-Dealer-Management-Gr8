@@ -21,7 +21,7 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
             var dealerId = HttpContext.Session.GetString("DealerId");
             if (string.IsNullOrEmpty(dealerId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             // Set UserRole from Session for proper navigation
@@ -103,7 +103,7 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(dealerId) || string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var dealerIdInt = int.Parse(dealerId);

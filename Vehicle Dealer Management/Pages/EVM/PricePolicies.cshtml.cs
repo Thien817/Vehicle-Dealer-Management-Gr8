@@ -25,7 +25,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             // Get all vehicles for filter
@@ -93,7 +93,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var policy = await _context.PricePolicies.FindAsync(policyId);
@@ -133,7 +133,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var policy = await _context.PricePolicies.FindAsync(policyId);

@@ -8,7 +8,7 @@ namespace Vehicle_Dealer_Management.Pages.Auth
         public IActionResult OnGet()
         {
             HttpContext.Session.Clear();
-            return RedirectToPage("/Login");
+            return RedirectToPage("/Auth/Login");
         }
     }
 }

@@ -21,7 +21,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             ViewData["UserRole"] = HttpContext.Session.GetString("UserRole") ?? "CUSTOMER";
@@ -35,7 +35,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
 
             if (customer == null)
             {
-                return RedirectToPage("/Profile");
+                return RedirectToPage("/Auth/Profile");
             }
 
             // Get order with all related data from DB - only orders belonging to this customer

@@ -109,7 +109,7 @@ namespace Vehicle_Dealer_Management.Pages.Auth
             SuccessMessage = "Đăng ký thành công! Vui lòng đăng nhập.";
             
             // Redirect to login after 2 seconds
-            return RedirectToPage("/Login");
+            return RedirectToPage("/Auth/Login");
         }
 
         private static string HashPassword(string password)

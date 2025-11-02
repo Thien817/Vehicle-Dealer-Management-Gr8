@@ -21,7 +21,7 @@ namespace Vehicle_Dealer_Management.Pages.EVM.Dealers
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             if (!id.HasValue)

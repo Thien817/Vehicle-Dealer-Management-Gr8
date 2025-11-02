@@ -32,7 +32,7 @@ namespace Vehicle_Dealer_Management.Pages.DealerManager
             
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(dealerId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             var user = await _context.Users
@@ -41,7 +41,7 @@ namespace Vehicle_Dealer_Management.Pages.DealerManager
 
             if (user == null)
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             UserName = user.FullName;

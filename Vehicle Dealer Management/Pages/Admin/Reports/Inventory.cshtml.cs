@@ -30,7 +30,7 @@ namespace Vehicle_Dealer_Management.Pages.Admin.Reports
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             // Get all stocks

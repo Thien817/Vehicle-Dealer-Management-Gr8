@@ -27,7 +27,7 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
             var dealerId = HttpContext.Session.GetString("DealerId");
             if (string.IsNullOrEmpty(dealerId))
             {
-                return RedirectToPage("/Login");
+                return RedirectToPage("/Auth/Login");
             }
 
             // Set UserRole from Session for proper navigation
