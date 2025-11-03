@@ -12,6 +12,15 @@ namespace Vehicle_Dealer_Management.BLL.IService
         Task<Feedback> CreateFeedbackAsync(Feedback feedback);
         Task UpdateFeedbackStatusAsync(int id, string status);
         Task<bool> FeedbackExistsAsync(int id);
+        
+        // Review methods (Type = REVIEW)
+        Task<Feedback?> GetReviewByOrderIdAsync(int orderId);
+        Task<Feedback> CreateReviewAsync(Feedback review);
+        Task<Feedback> UpdateReviewAsync(int id, int rating, string? content);
+        Task<bool> DeleteReviewAsync(int id);
+        Task<bool> HasReviewedAsync(int orderId);
+        Task<IEnumerable<Feedback>> GetReviewsByDealerIdAsync(int dealerId);
+        Task<double> GetAverageRatingByDealerIdAsync(int dealerId);
     }
 }
 

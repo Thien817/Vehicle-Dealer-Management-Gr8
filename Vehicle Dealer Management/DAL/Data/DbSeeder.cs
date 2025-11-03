@@ -566,6 +566,82 @@ namespace Vehicle_Dealer_Management.DAL.Data
             {
                 context.SaveChanges();
             }
+
+            // Seed sample Reviews (Type = REVIEW) nếu có orders đã DELIVERED
+            // Reviews chỉ có thể được tạo cho orders đã hoàn thành (DELIVERED và đã thanh toán đủ 100%)
+            if (!context.Feedbacks.Any(f => f.Type == "REVIEW"))
+            {
+                var orders = context.SalesDocuments
+                    .Where(sd => sd.Type == "ORDER" && sd.Status == "DELIVERED")
+                    .Include(sd => sd.Customer)
+                    .Include(sd => sd.Dealer)
+                    .Take(2) // Chỉ tạo 2 reviews mẫu
+                    .ToList();
+
+                var customers = context.CustomerProfiles.ToList();
+                var dealers = context.Dealers.ToList();
+
+                if (orders.Any() && customers.Any() && dealers.Any())
+                {
+                    var reviews = new List<Feedback>();
+
+                    // Review 1: 5 sao
+                    if (orders.Count > 0)
+                    {
+                        var order1 = orders[0];
+                        var customer1 = customers.FirstOrDefault(c => c.Id == order1.CustomerId);
+                        var dealer1 = dealers.FirstOrDefault(d => d.Id == order1.DealerId);
+
+                        if (customer1 != null && dealer1 != null)
+                        {
+                            reviews.Add(new Feedback
+                            {
+                                Type = "REVIEW",
+                                Status = "RESOLVED", // Reviews không dùng workflow status
+                                CustomerId = customer1.Id,
+                                DealerId = dealer1.Id,
+                                OrderId = order1.Id,
+                                Rating = 5,
+                                Content = "Dịch vụ rất tốt! Nhân viên tư vấn nhiệt tình, xe chất lượng cao. Giao hàng đúng hẹn. Rất hài lòng!",
+                                CreatedAt = DateTime.UtcNow.AddDays(-5),
+                                UpdatedAt = null,
+                                ResolvedAt = null
+                            });
+                        }
+                    }
+
+                    // Review 2: 4 sao
+                    if (orders.Count > 1)
+                    {
+                        var order2 = orders[1];
+                        var customer2 = customers.FirstOrDefault(c => c.Id == order2.CustomerId);
+                        var dealer2 = dealers.FirstOrDefault(d => d.Id == order2.DealerId);
+
+                        if (customer2 != null && dealer2 != null)
+                        {
+                            reviews.Add(new Feedback
+                            {
+                                Type = "REVIEW",
+                                Status = "RESOLVED",
+                                CustomerId = customer2.Id,
+                                DealerId = dealer2.Id,
+                                OrderId = order2.Id,
+                                Rating = 4,
+                                Content = "Xe đẹp, chất lượng tốt. Nhưng thời gian giao hàng hơi chậm một chút. Nhìn chung là hài lòng.",
+                                CreatedAt = DateTime.UtcNow.AddDays(-3),
+                                UpdatedAt = null,
+                                ResolvedAt = null
+                            });
+                        }
+                    }
+
+                    if (reviews.Any())
+                    {
+                        context.Feedbacks.AddRange(reviews);
+                        context.SaveChanges();
+                    }
+                }
+            }
         }
     }
 }

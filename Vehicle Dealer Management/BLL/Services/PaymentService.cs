@@ -27,6 +27,11 @@ namespace Vehicle_Dealer_Management.BLL.Services
             return await _paymentRepository.GetPaymentsBySalesDocumentIdAsync(salesDocumentId);
         }
 
+        public async Task<IEnumerable<Payment>> GetPaymentsBySalesDocumentIdsAsync(IEnumerable<int> salesDocumentIds)
+        {
+            return await _paymentRepository.GetPaymentsBySalesDocumentIdsAsync(salesDocumentIds);
+        }
+
         public async Task<decimal> GetTotalPaidAmountAsync(int salesDocumentId)
         {
             return await _paymentRepository.GetTotalPaidAmountAsync(salesDocumentId);

@@ -57,10 +57,33 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
             PaidOrders = allOrders.Count(o => o.Status == "PAID");
             DeliveredOrders = allOrders.Count(o => o.Status == "DELIVERED");
 
+            // Load tất cả payments trong một query để tránh concurrent DbContext access
+            var orderIds = orders.Select(o => o.Id).ToList();
+            var allPayments = await _paymentService.GetPaymentsBySalesDocumentIdsAsync(orderIds);
+            var paidAmountsDict = allPayments
+                .GroupBy(p => p.SalesDocumentId)
+                .ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
+
+            // Xử lý tuần tự để tránh concurrent DbContext access
             Orders = orders.Select(o =>
             {
                 var totalAmount = o.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0;
-                var paidAmount = o.Payments?.Sum(p => p.Amount) ?? 0;
+                var paidAmount = paidAmountsDict.GetValueOrDefault(o.Id, 0);
+                var remainingAmount = totalAmount - paidAmount;
+                
+                // Xác định trạng thái hiển thị: nếu đã DELIVERED nhưng còn dư nợ, hiển thị "Còn dư nợ"
+                // Lấy thông tin delivery để kiểm tra
+                var delivery = o.Delivery;
+                var displayStatus = o.Status;
+                var isDelivered = o.Status == "DELIVERED" || 
+                                  (delivery != null && delivery.Status == "DELIVERED") || 
+                                  (delivery != null && delivery.CustomerConfirmed);
+                
+                if (isDelivered && remainingAmount > 0)
+                {
+                    displayStatus = "DEBT"; // Trạng thái đặc biệt cho "Còn dư nợ"
+                }
+                
                 return new OrderViewModel
                 {
                     Id = o.Id,
@@ -70,8 +93,9 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
                     VehicleCount = (int)(o.Lines?.Sum(l => (decimal?)l.Qty) ?? 0),
                     TotalAmount = totalAmount,
                     PaidAmount = paidAmount,
-                    RemainingAmount = totalAmount - paidAmount,
-                    Status = o.Status
+                    RemainingAmount = remainingAmount,
+                    Status = o.Status,
+                    DisplayStatus = displayStatus
                 };
             }).ToList();
 
@@ -89,6 +113,7 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
             public decimal PaidAmount { get; set; }
             public decimal RemainingAmount { get; set; }
             public string Status { get; set; } = "";
+            public string DisplayStatus { get; set; } = ""; // Trạng thái hiển thị (có thể khác Status nếu còn dư nợ)
         }
     }
 }

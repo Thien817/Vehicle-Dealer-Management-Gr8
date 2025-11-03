@@ -8,6 +8,9 @@ namespace Vehicle_Dealer_Management.DAL.IRepository
         Task<IEnumerable<Feedback>> GetFeedbacksByDealerIdAsync(int dealerId);
         Task<IEnumerable<Feedback>> GetFeedbacksByTypeAsync(string type, int? dealerId = null);
         Task<IEnumerable<Feedback>> GetFeedbacksByStatusAsync(string status, int? dealerId = null);
+        Task<Feedback?> GetReviewByOrderIdAsync(int orderId);
+        Task<IEnumerable<Feedback>> GetReviewsByDealerIdAsync(int dealerId);
+        Task<double> GetAverageRatingByDealerIdAsync(int dealerId);
     }
 }
 

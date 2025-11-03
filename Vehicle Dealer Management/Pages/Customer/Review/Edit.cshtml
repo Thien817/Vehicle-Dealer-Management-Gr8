@@ -1,0 +1,90 @@
+@page "/Customer/Review/Edit"
+@model Vehicle_Dealer_Management.Pages.Customer.Review.EditModel
+@{
+    ViewData["Title"] = "Chỉnh sửa đánh giá";
+}
+
+@await Html.PartialAsync("_PageHeader")
+
+<div class="content-header">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="content-title">Chỉnh sửa đánh giá</h1>
+            <p class="content-subtitle">Đơn hàng: @Model.OrderInfo.OrderNumber</p>
+        </div>
+        <a href="/Customer/OrderDetail?id=@Model.OrderId" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            <input type="hidden" asp-for="OrderId" />
+
+            <div style="margin-bottom: 1.5rem;">
+                <label class="form-label">Đánh giá sao *</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <button type="button" class="star-btn" data-rating="@i" style="background: none; border: none; padding: 0; cursor: pointer; font-size: 2rem; color: var(--text-muted);">
+                            <i class="bi bi-star"></i>
+                        </button>
+                    }
+                    <span id="rating-text" style="margin-left: 1rem; font-weight: 600; color: var(--text);">@Model.Rating sao</span>
+                </div>
+                <input type="hidden" asp-for="Rating" id="rating-input" />
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label class="form-label" for="Content">Nội dung đánh giá</label>
+                <textarea asp-for="Content" class="form-control" rows="6" placeholder="Chia sẻ trải nghiệm của bạn về dịch vụ và sản phẩm...">@Model.Content</textarea>
+                <span asp-validation-for="Content" class="text-danger"></span>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <a href="/Customer/OrderDetail?id=@Model.OrderId" class="btn btn-secondary">Hủy</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check"></i> Cập nhật đánh giá
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.star-btn').forEach((btn, index) => {
+            btn.addEventListener('click', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                document.getElementById('rating-input').value = rating;
+                document.getElementById('rating-text').textContent = rating + ' sao';
+                
+                // Update star display
+                document.querySelectorAll('.star-btn').forEach((b, i) => {
+                    const starIcon = b.querySelector('i');
+                    if (i < rating) {
+                        starIcon.className = 'bi bi-star-fill';
+                        b.style.color = 'var(--warning)';
+                    } else {
+                        starIcon.className = 'bi bi-star';
+                        b.style.color = 'var(--text-muted)';
+                    }
+                });
+            });
+        });
+
+        // Initialize stars on load
+        const initialRating = @Model.Rating;
+        document.querySelectorAll('.star-btn').forEach((btn, index) => {
+            const rating = index + 1;
+            const starIcon = btn.querySelector('i');
+            if (rating <= initialRating) {
+                starIcon.className = 'bi bi-star-fill';
+                btn.style.color = 'var(--warning)';
+            }
+        });
+    </script>
+}
+

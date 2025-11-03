@@ -36,6 +36,7 @@ namespace Vehicle_Dealer_Management.DAL.Repositories
                 .Include(s => s.Lines!)
                     .ThenInclude(l => l.Vehicle)
                 .Include(s => s.Payments)
+                .Include(s => s.Delivery)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(type))

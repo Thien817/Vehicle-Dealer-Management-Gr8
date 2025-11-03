@@ -22,6 +22,20 @@ namespace Vehicle_Dealer_Management.DAL.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Payment>> GetPaymentsBySalesDocumentIdsAsync(IEnumerable<int> salesDocumentIds)
+        {
+            var idsList = salesDocumentIds.ToList();
+            if (!idsList.Any())
+            {
+                return Enumerable.Empty<Payment>();
+            }
+            
+            return await _context.Payments
+                .Where(p => idsList.Contains(p.SalesDocumentId))
+                .OrderByDescending(p => p.PaidAt)
+                .ToListAsync();
+        }
+
         public async Task<decimal> GetTotalPaidAmountAsync(int salesDocumentId)
         {
             return await _context.Payments

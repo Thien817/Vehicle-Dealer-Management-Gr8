@@ -12,8 +12,8 @@ using Vehicle_Dealer_Management.DAL.Data;
 namespace Vehicle_Dealer_Management.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251103144253_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251103210012_AddRatingAndOrderIdToFeedback")]
+    partial class AddRatingAndOrderIdToFeedback
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -293,6 +293,12 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("CustomerConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("CustomerConfirmedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("DeliveredDate")
                         .HasColumnType("datetime2");
 
@@ -342,6 +348,12 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.Property<int>("DealerId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("datetime2");
 
@@ -360,9 +372,15 @@ namespace Vehicle_Dealer_Management.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrderId");
+
                     b.HasIndex("CustomerId", "CreatedAt");
 
                     b.HasIndex("DealerId", "Status");
+
+                    b.HasIndex("Type", "OrderId");
+
+                    b.HasIndex("DealerId", "Type", "Rating");
 
                     b.ToTable("Feedbacks");
                 });
@@ -985,9 +1003,15 @@ namespace Vehicle_Dealer_Management.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Vehicle_Dealer_Management.DAL.Models.SalesDocument", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId");
+
                     b.Navigation("Customer");
 
                     b.Navigation("Dealer");
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.Notification", b =>

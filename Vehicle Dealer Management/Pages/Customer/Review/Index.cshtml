@@ -1,0 +1,80 @@
+@page "/Customer/Review"
+@model Vehicle_Dealer_Management.Pages.Customer.Review.IndexModel
+@{
+    ViewData["Title"] = "Đánh giá của tôi";
+}
+
+<div class="content-header">
+    <h1 class="content-title">Đánh giá của tôi</h1>
+    <p class="content-subtitle">Xem và quản lý tất cả đánh giá của bạn</p>
+</div>
+
+@if (Model.Reviews.Count == 0)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state" style="padding: 3rem 1rem;">
+                <div class="empty-state-icon">⭐</div>
+                <div class="empty-state-title">Chưa có đánh giá nào</div>
+                <div class="empty-state-text">Bạn chưa đánh giá đơn hàng nào. Hãy đánh giá đơn hàng đã hoàn thành để chia sẻ trải nghiệm của bạn!</div>
+                <a href="/Customer/MyOrders" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i class="bi bi-arrow-left"></i> Xem đơn hàng của tôi
+                </a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; gap: 1rem;">
+                @foreach (var review in Model.Reviews)
+                {
+                    <div style="padding: 1.5rem; background: var(--black); border-radius: var(--radius); border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                                    <a href="/Customer/OrderDetail?id=@review.OrderId" style="font-size: 1.125rem; font-weight: 600; color: var(--accent-cyan); text-decoration: none;">
+                                        @review.OrderNumber
+                                    </a>
+                                    <span class="badge" style="background: var(--surface); color: var(--text);">
+                                        @review.DealerName
+                                    </span>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.875rem;">
+                                    @review.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    @if (review.UpdatedAt.HasValue)
+                                    {
+                                        <span>(Đã cập nhật: @review.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm"))</span>
+                                    }
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.25rem; font-size: 1.25rem; color: var(--warning);">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")"></i>
+                                }
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(review.Content))
+                        {
+                            <div style="padding: 0.75rem; background: var(--surface); border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                                @review.Content
+                            </div>
+                        }
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="/Customer/Review/Edit?orderId=@review.OrderId" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-pencil"></i> Chỉnh sửa
+                            </a>
+                            <a href="/Customer/OrderDetail?id=@review.OrderId" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-eye"></i> Xem đơn hàng
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+

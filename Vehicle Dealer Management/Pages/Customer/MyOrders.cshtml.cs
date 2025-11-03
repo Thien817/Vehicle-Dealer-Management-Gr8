@@ -58,7 +58,9 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                     PaidAmount = paidAmount,
                     RemainingAmount = totalAmount - paidAmount,
                     Status = o.Status,
-                    DeliveryDate = o.Delivery?.ScheduledDate
+                    DeliveryDate = o.Delivery?.ScheduledDate,
+                    DeliveryStatus = o.Delivery?.Status,
+                    CustomerConfirmed = o.Delivery?.CustomerConfirmed ?? false
                 });
             }
             Orders = ordersList;
@@ -76,6 +78,8 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             public decimal RemainingAmount { get; set; }
             public string Status { get; set; } = "";
             public DateTime? DeliveryDate { get; set; }
+            public string? DeliveryStatus { get; set; }
+            public bool CustomerConfirmed { get; set; }
         }
     }
 }

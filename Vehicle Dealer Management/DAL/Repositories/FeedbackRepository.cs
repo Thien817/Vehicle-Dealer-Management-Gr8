@@ -58,6 +58,39 @@ namespace Vehicle_Dealer_Management.DAL.Repositories
                 .OrderByDescending(f => f.CreatedAt)
                 .ToListAsync();
         }
+
+        public async Task<Feedback?> GetReviewByOrderIdAsync(int orderId)
+        {
+            return await _context.Feedbacks
+                .Where(f => f.Type == "REVIEW" && f.OrderId == orderId)
+                .Include(f => f.Order)
+                .Include(f => f.Customer)
+                .Include(f => f.Dealer)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<Feedback>> GetReviewsByDealerIdAsync(int dealerId)
+        {
+            return await _context.Feedbacks
+                .Where(f => f.Type == "REVIEW" && f.DealerId == dealerId)
+                .Include(f => f.Order)
+                .Include(f => f.Customer)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<double> GetAverageRatingByDealerIdAsync(int dealerId)
+        {
+            var reviews = await _context.Feedbacks
+                .Where(f => f.Type == "REVIEW" && f.DealerId == dealerId && f.Rating.HasValue)
+                .Select(f => f.Rating!.Value)
+                .ToListAsync();
+            
+            if (reviews.Count == 0)
+                return 0;
+            
+            return reviews.Average();
+        }
     }
 }
 

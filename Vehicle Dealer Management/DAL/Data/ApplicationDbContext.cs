@@ -150,6 +150,8 @@ namespace Vehicle_Dealer_Management.DAL.Data
             {
                 entity.HasIndex(e => new { e.DealerId, e.Status });
                 entity.HasIndex(e => new { e.CustomerId, e.CreatedAt });
+                entity.HasIndex(e => new { e.Type, e.OrderId }); // Index cho REVIEW type
+                entity.HasIndex(e => new { e.DealerId, e.Type, e.Rating }); // Index cho rating queries
             });
 
             // Configure relationships

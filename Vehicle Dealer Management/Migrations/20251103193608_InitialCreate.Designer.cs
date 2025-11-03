@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vehicle_Dealer_Management.DAL.Data;
 
@@ -11,9 +12,11 @@ using Vehicle_Dealer_Management.DAL.Data;
 namespace Vehicle_Dealer_Management.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251103193608_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -345,12 +348,6 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.Property<int>("DealerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Rating")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("datetime2");
 
@@ -369,15 +366,9 @@ namespace Vehicle_Dealer_Management.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
-
                     b.HasIndex("CustomerId", "CreatedAt");
 
                     b.HasIndex("DealerId", "Status");
-
-                    b.HasIndex("Type", "OrderId");
-
-                    b.HasIndex("DealerId", "Type", "Rating");
 
                     b.ToTable("Feedbacks");
                 });
@@ -1000,15 +991,9 @@ namespace Vehicle_Dealer_Management.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Vehicle_Dealer_Management.DAL.Models.SalesDocument", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId");
-
                     b.Navigation("Customer");
 
                     b.Navigation("Dealer");
-
-                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Vehicle_Dealer_Management.DAL.Models.Notification", b =>

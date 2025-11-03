@@ -11,15 +11,21 @@ namespace Vehicle_Dealer_Management.BLL.Services
         private readonly IDeliveryRepository _deliveryRepository;
         private readonly ISalesDocumentRepository _salesDocumentRepository;
         private readonly ApplicationDbContext _context;
+        private readonly IPaymentService _paymentService;
+        private readonly INotificationService? _notificationService;
 
         public DeliveryService(
             IDeliveryRepository deliveryRepository,
             ISalesDocumentRepository salesDocumentRepository,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IPaymentService paymentService,
+            INotificationService? notificationService = null)
         {
             _deliveryRepository = deliveryRepository;
             _salesDocumentRepository = salesDocumentRepository;
             _context = context;
+            _paymentService = paymentService;
+            _notificationService = notificationService;
         }
 
         public async Task<Delivery?> GetDeliveryBySalesDocumentIdAsync(int salesDocumentId)
@@ -170,9 +176,33 @@ namespace Vehicle_Dealer_Management.BLL.Services
                 throw new InvalidOperationException($"Customer cannot confirm receipt. Current status: {delivery.Status}. Expected: IN_TRANSIT");
             }
 
+            // Customer xác nhận nhận xe - tự động chuyển delivery status thành DELIVERED
             delivery.CustomerConfirmed = true;
             delivery.CustomerConfirmedDate = DateTime.UtcNow;
+            delivery.DeliveredDate = DateTime.UtcNow;
+            delivery.Status = "DELIVERED";
             await _deliveryRepository.UpdateAsync(delivery);
+
+            // Auto-update sales document status - chỉ đổi status nếu đã thanh toán đủ 100%
+            // Nếu chưa thanh toán đủ, giữ nguyên status để không đóng đơn
+            var salesDocument = await _salesDocumentRepository.GetByIdAsync(delivery.SalesDocumentId);
+            if (salesDocument != null && salesDocument.Type == "ORDER")
+            {
+                // Kiểm tra thanh toán - chỉ đóng đơn nếu đã thanh toán đủ 100%
+                var totalAmount = salesDocument.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0;
+                var totalPaid = await _paymentService.GetTotalPaidAmountAsync(salesDocument.Id);
+                
+                // Nếu đã thanh toán đủ 100%, đổi status thành DELIVERED
+                // Nếu chưa đủ, giữ status hiện tại (có thể là IN_DELIVERY) để tiếp tục thanh toán
+                if (totalAmount > 0 && totalPaid >= totalAmount)
+                {
+                    salesDocument.Status = "DELIVERED";
+                }
+                // Nếu chưa thanh toán đủ, không đổi status - đơn vẫn mở để tiếp tục thanh toán
+                
+                salesDocument.UpdatedAt = DateTime.UtcNow;
+                await _salesDocumentRepository.UpdateAsync(salesDocument);
+            }
 
             return delivery;
         }
@@ -201,11 +231,45 @@ namespace Vehicle_Dealer_Management.BLL.Services
 
             await _deliveryRepository.UpdateAsync(delivery);
 
-            // Auto-update sales document status
-            var salesDocument = await _salesDocumentRepository.GetByIdAsync(delivery.SalesDocumentId);
+            // Auto-update sales document status - chỉ đổi status nếu đã thanh toán đủ 100%
+            // Nếu chưa thanh toán đủ, giữ nguyên status để không đóng đơn
+            var salesDocument = await _salesDocumentRepository.GetSalesDocumentWithDetailsAsync(delivery.SalesDocumentId);
             if (salesDocument != null && salesDocument.Type == "ORDER")
             {
-                salesDocument.Status = "DELIVERED";
+                // Kiểm tra thanh toán - chỉ đóng đơn nếu đã thanh toán đủ 100%
+                var totalAmount = salesDocument.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0;
+                var totalPaid = await _paymentService.GetTotalPaidAmountAsync(salesDocument.Id);
+                
+                // Nếu đã thanh toán đủ 100%, đổi status thành DELIVERED
+                // Nếu chưa đủ, giữ status hiện tại (có thể là IN_DELIVERY hoặc DELIVERY_SCHEDULED)
+                // Delivery status vẫn là DELIVERED nhưng order status không đổi để tiếp tục thanh toán
+                var wasNotDelivered = salesDocument.Status != "DELIVERED";
+                if (totalAmount > 0 && totalPaid >= totalAmount)
+                {
+                    salesDocument.Status = "DELIVERED";
+                    
+                    // Tạo notification cho customer để đánh giá đơn hàng
+                    if (wasNotDelivered && salesDocument.Customer?.UserId != null && _notificationService != null)
+                    {
+                        try
+                        {
+                            await _notificationService.CreateNotificationAsync(
+                                userId: salesDocument.Customer.UserId.Value,
+                                title: "Đơn hàng đã hoàn thành - Hãy đánh giá!",
+                                content: $"Đơn hàng #{salesDocument.Id} đã được giao và thanh toán đủ. Hãy đánh giá trải nghiệm của bạn!",
+                                type: "ORDER",
+                                linkUrl: $"/Customer/OrderDetail?id={salesDocument.Id}",
+                                relatedEntityId: salesDocument.Id,
+                                relatedEntityType: "Order");
+                        }
+                        catch
+                        {
+                            // Ignore notification errors - không làm gián đoạn quá trình giao xe
+                        }
+                    }
+                }
+                // Nếu chưa thanh toán đủ, không đổi status - đơn vẫn mở để tiếp tục thanh toán
+                
                 salesDocument.UpdatedAt = DateTime.UtcNow;
                 await _salesDocumentRepository.UpdateAsync(salesDocument);
             }

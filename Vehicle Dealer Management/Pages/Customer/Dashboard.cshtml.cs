@@ -34,6 +34,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
         public int OrdersCount { get; set; }
         public int TestDrivesCount { get; set; }
         public int AvailableVehicles { get; set; }
+        public decimal TotalOutstandingDebt { get; set; } = 0; // Tổng dư nợ
         public List<OrderViewModel> RecentOrders { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync()
@@ -87,6 +88,17 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                         TotalPaid = totalPaid
                     };
                 }).ToList();
+
+                // Tính tổng dư nợ từ tất cả đơn hàng
+                TotalOutstandingDebt = orders
+                    .Select(o =>
+                    {
+                        var totalAmount = o.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0;
+                        var totalPaid = o.Payments?.Sum(p => p.Amount) ?? 0;
+                        return totalAmount - totalPaid;
+                    })
+                    .Where(debt => debt > 0)
+                    .Sum();
             }
 
             var availableVehicles = await _vehicleService.GetAvailableVehiclesAsync();

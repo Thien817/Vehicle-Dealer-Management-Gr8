@@ -101,17 +101,20 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
                     MetaJson = p.MetaJson
                 }).ToList() ?? new List<PaymentViewModel>(),
 
-                // Delivery
-                Delivery = order.Delivery != null ? new DeliveryViewModel
-                {
-                    Id = order.Delivery.Id,
-                    ScheduledDate = order.Delivery.ScheduledDate,
-                    DeliveredDate = order.Delivery.DeliveredDate,
-                    Status = order.Delivery.Status,
-                    HandoverNote = order.Delivery.HandoverNote,
-                    CustomerConfirmed = order.Delivery.CustomerConfirmed,
-                    CustomerConfirmedDate = order.Delivery.CustomerConfirmedDate
-                } : null,
+                // Delivery - chỉ hiển thị nếu có ScheduledDate hợp lệ (không phải MinValue và không phải quá khứ quá xa)
+                Delivery = order.Delivery != null && 
+                           order.Delivery.ScheduledDate != default(DateTime) && 
+                           order.Delivery.ScheduledDate > DateTime.MinValue.AddYears(1) // Đảm bảo là date hợp lệ
+                    ? new DeliveryViewModel
+                    {
+                        Id = order.Delivery.Id,
+                        ScheduledDate = order.Delivery.ScheduledDate,
+                        DeliveredDate = order.Delivery.DeliveredDate,
+                        Status = order.Delivery.Status,
+                        HandoverNote = order.Delivery.HandoverNote,
+                        CustomerConfirmed = order.Delivery.CustomerConfirmed,
+                        CustomerConfirmedDate = order.Delivery.CustomerConfirmedDate
+                    } : null,
 
                 // Totals
                 SubTotal = totalAmount,
@@ -162,7 +165,33 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
             // Create payment using Service (auto-updates order status)
             await _paymentService.CreatePaymentAsync(order.Id, method ?? "CASH", amount, metaJson);
 
-            TempData["Success"] = "Thêm thanh toán thành công!";
+            // Kiểm tra xem đơn hàng đã được thanh toán đủ 100% chưa
+            var newPaidAmount = await _paymentService.GetTotalPaidAmountAsync(order.Id);
+            var newRemainingAmount = totalAmount - newPaidAmount;
+            
+            if (newRemainingAmount <= 0)
+            {
+                // Nếu đã thanh toán đủ và đơn đã giao, cập nhật status thành DELIVERED (đóng đơn)
+                var isDelivered = order.Status == "DELIVERED" || 
+                                  (order.Delivery != null && order.Delivery.Status == "DELIVERED") || 
+                                  (order.Delivery != null && order.Delivery.CustomerConfirmed);
+                
+                if (isDelivered && order.Status != "DELIVERED")
+                {
+                    // Đơn đã giao và đã thanh toán đủ -> đóng đơn
+                    await _salesDocumentService.UpdateSalesDocumentStatusAsync(order.Id, "DELIVERED");
+                    TempData["Success"] = "Thanh toán thành công! Đơn hàng đã được thanh toán đủ 100% và đã được đóng.";
+                }
+                else
+                {
+                    TempData["Success"] = "Thanh toán thành công! Đơn hàng đã được thanh toán đủ 100%.";
+                }
+            }
+            else
+            {
+                TempData["Success"] = $"Thêm thanh toán thành công! Còn lại: {newRemainingAmount:N0} VND.";
+            }
+            
             return RedirectToPage(new { id });
         }
 
@@ -182,6 +211,32 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
             if (order == null || order.DealerId != dealerIdInt || order.Type != "ORDER")
             {
                 return NotFound();
+            }
+
+            // Validate order status - không cho phép lên lịch giao xe nếu đơn đã giao hoặc đã hủy
+            if (order.Status == "DELIVERED" || order.Status == "CANCELLED")
+            {
+                TempData["Error"] = "Không thể lên lịch giao xe cho đơn hàng ở trạng thái này.";
+                return RedirectToPage(new { id });
+            }
+
+            // Validate payment - chỉ cho phép lên lịch giao xe khi đã thanh toán ít nhất 30%
+            var totalAmount = order.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0;
+            var paidAmount = await _paymentService.GetTotalPaidAmountAsync(order.Id);
+            
+            if (totalAmount > 0)
+            {
+                var paymentPercentage = (paidAmount / totalAmount) * 100;
+                if (paymentPercentage < 30)
+                {
+                    TempData["Error"] = $"Chỉ có thể lên lịch giao xe khi đã thanh toán ít nhất 30% giá trị đơn hàng. Hiện tại đã thanh toán: {paymentPercentage:F1}% ({paidAmount:N0} VND / {totalAmount:N0} VND).";
+                    return RedirectToPage(new { id });
+                }
+            }
+            else
+            {
+                TempData["Error"] = "Không thể lên lịch giao xe cho đơn hàng có giá trị bằng 0.";
+                return RedirectToPage(new { id });
             }
 
             // Combine date and time
@@ -234,6 +289,20 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
                 return RedirectToPage(new { id });
             }
 
+            // Validate delivery có ScheduledDate hợp lệ
+            if (delivery.ScheduledDate == default(DateTime) || delivery.ScheduledDate <= DateTime.MinValue.AddYears(1))
+            {
+                TempData["Error"] = "Lịch giao xe không hợp lệ. Vui lòng lên lịch giao lại.";
+                return RedirectToPage(new { id });
+            }
+
+            // Validate delivery status - chỉ cho phép bắt đầu nếu đang ở SCHEDULED
+            if (delivery.Status != "SCHEDULED")
+            {
+                TempData["Error"] = $"Không thể bắt đầu giao xe. Trạng thái hiện tại: {delivery.Status}";
+                return RedirectToPage(new { id });
+            }
+
             try
             {
                 await _deliveryService.StartDeliveryAsync(delivery.Id);
@@ -272,10 +341,37 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
                 return RedirectToPage(new { id });
             }
 
+            // Validate delivery có ScheduledDate hợp lệ
+            if (delivery.ScheduledDate == default(DateTime) || delivery.ScheduledDate <= DateTime.MinValue.AddYears(1))
+            {
+                TempData["Error"] = "Lịch giao xe không hợp lệ. Vui lòng lên lịch giao lại.";
+                return RedirectToPage(new { id });
+            }
+
+            // Validate delivery status - chỉ cho phép hoàn thành nếu đang ở IN_TRANSIT
+            if (delivery.Status != "IN_TRANSIT")
+            {
+                TempData["Error"] = $"Không thể hoàn thành giao xe. Trạng thái hiện tại: {delivery.Status}";
+                return RedirectToPage(new { id });
+            }
+
+            // Kiểm tra thanh toán - hoàn thành giao xe vẫn được phép, nhưng đơn hàng chỉ đóng khi đã thanh toán đủ 100%
+            var totalAmount = order.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0;
+            var paidAmount = await _paymentService.GetTotalPaidAmountAsync(order.Id);
+            var remainingAmount = totalAmount - paidAmount;
+
             try
             {
                 await _deliveryService.CompleteDeliveryAsync(delivery.Id, DateTime.UtcNow, handoverNote);
-                TempData["Success"] = "Hoàn thành giao xe thành công!";
+                
+                if (remainingAmount > 0)
+                {
+                    TempData["Success"] = $"Hoàn thành giao xe thành công! Lưu ý: Đơn hàng đã được giao nhưng còn thiếu {remainingAmount:N0} VND. Đơn hàng sẽ KHÔNG đóng (vẫn ở trạng thái hiện tại) cho đến khi khách hàng thanh toán đủ 100%. Bạn không thể đóng đơn hàng khi chưa thanh toán đủ.";
+                }
+                else
+                {
+                    TempData["Success"] = "Hoàn thành giao xe thành công! Đơn hàng đã được đóng do đã thanh toán đủ 100%.";
+                }
             }
             catch (Exception ex)
             {

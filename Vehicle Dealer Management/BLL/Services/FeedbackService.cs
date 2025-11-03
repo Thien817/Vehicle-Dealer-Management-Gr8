@@ -89,6 +89,84 @@ namespace Vehicle_Dealer_Management.BLL.Services
         {
             return await _feedbackRepository.ExistsAsync(id);
         }
+
+        // Review methods (Type = REVIEW)
+        public async Task<Feedback?> GetReviewByOrderIdAsync(int orderId)
+        {
+            return await _feedbackRepository.GetReviewByOrderIdAsync(orderId);
+        }
+
+        public async Task<Feedback> CreateReviewAsync(Feedback review)
+        {
+            if (review == null)
+                throw new ArgumentNullException(nameof(review));
+
+            // Validate review
+            if (review.Type != "REVIEW")
+                throw new ArgumentException("Review must have Type = REVIEW", nameof(review));
+
+            if (!review.Rating.HasValue || review.Rating < 1 || review.Rating > 5)
+                throw new ArgumentException("Rating must be between 1 and 5", nameof(review));
+
+            if (!review.OrderId.HasValue)
+                throw new ArgumentException("OrderId is required for review", nameof(review));
+
+            // Check if review already exists for this order
+            var existingReview = await _feedbackRepository.GetReviewByOrderIdAsync(review.OrderId.Value);
+            if (existingReview != null)
+                throw new InvalidOperationException("Đơn hàng này đã có đánh giá. Vui lòng cập nhật đánh giá hiện có.");
+
+            review.Status = "RESOLVED"; // Reviews don't use workflow status
+            review.CreatedAt = DateTime.UtcNow;
+
+            return await _feedbackRepository.AddAsync(review);
+        }
+
+        public async Task<Feedback> UpdateReviewAsync(int id, int rating, string? content)
+        {
+            var review = await _feedbackRepository.GetByIdAsync(id);
+            if (review == null)
+                throw new KeyNotFoundException($"Review with ID {id} not found");
+
+            if (review.Type != "REVIEW")
+                throw new InvalidOperationException("This is not a review");
+
+            if (rating < 1 || rating > 5)
+                throw new ArgumentException("Rating must be between 1 and 5", nameof(rating));
+
+            review.Rating = rating;
+            review.Content = content ?? review.Content;
+            review.UpdatedAt = DateTime.UtcNow;
+            
+            await _feedbackRepository.UpdateAsync(review);
+            return review;
+        }
+
+        public async Task<bool> DeleteReviewAsync(int id)
+        {
+            var review = await _feedbackRepository.GetByIdAsync(id);
+            if (review == null || review.Type != "REVIEW")
+                return false;
+
+            await _feedbackRepository.DeleteAsync(review);
+            return true;
+        }
+
+        public async Task<bool> HasReviewedAsync(int orderId)
+        {
+            var review = await _feedbackRepository.GetReviewByOrderIdAsync(orderId);
+            return review != null;
+        }
+
+        public async Task<IEnumerable<Feedback>> GetReviewsByDealerIdAsync(int dealerId)
+        {
+            return await _feedbackRepository.GetReviewsByDealerIdAsync(dealerId);
+        }
+
+        public async Task<double> GetAverageRatingByDealerIdAsync(int dealerId)
+        {
+            return await _feedbackRepository.GetAverageRatingByDealerIdAsync(dealerId);
+        }
     }
 }
 

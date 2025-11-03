@@ -25,7 +25,23 @@
                             Ngày đặt: @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")
                         </p>
                     </div>
-                    @await Html.PartialAsync("_StatusBadge", order.Status)
+                    @{
+                        // Hiển thị status badge với màu vàng/cam nếu đã giao nhưng còn nợ
+                        // Đã giao = delivery status là DELIVERED HOẶC customer đã xác nhận nhận xe
+                        var isDelivered = order.DeliveryStatus == "DELIVERED" || order.CustomerConfirmed || order.Status == "DELIVERED";
+                        var isDeliveredWithDebt = isDelivered && order.RemainingAmount > 0;
+                        
+                        if (isDeliveredWithDebt)
+                        {
+                            <span class="badge" style="background: var(--warning); color: #000; border: 1px solid var(--warning); font-weight: 600;">
+                                Đã giao (Còn nợ)
+                            </span>
+                        }
+                        else
+                        {
+                            @await Html.PartialAsync("_StatusBadge", order.Status)
+                        }
+                    }
                 </div>
 
                 <div class="grid grid-cols-3 gap-3 mb-3" style="padding: 1rem; background: var(--black); border-radius: var(--radius-sm);">
@@ -49,11 +65,31 @@
                     </div>
                 </div>
 
-                @if (order.DeliveryDate.HasValue)
+                @{
+                    // Chỉ hiển thị "Ngày giao xe dự kiến" khi chưa giao và chưa xác nhận nhận xe
+                    var isNotDeliveredYet = order.Status != "DELIVERED" && order.DeliveryStatus != "DELIVERED" && !order.CustomerConfirmed;
+                }
+                @if (order.DeliveryDate.HasValue && isNotDeliveredYet)
                 {
                     <div style="padding: 1rem; background: var(--success-bg); border: 1px solid var(--success); border-radius: var(--radius-sm); margin-bottom: 1rem;">
                         <div style="color: var(--success); font-weight: 600;">
                             <i class="bi bi-truck"></i> Ngày giao xe dự kiến: @order.DeliveryDate.Value.ToString("dd/MM/yyyy")
+                        </div>
+                    </div>
+                }
+
+                @{
+                    // Cảnh báo dư nợ khi đã giao nhưng còn thiếu tiền
+                    // Đã giao = delivery status là DELIVERED HOẶC customer đã xác nhận nhận xe
+                    var isDeliveredForAlert = order.DeliveryStatus == "DELIVERED" || order.CustomerConfirmed || order.Status == "DELIVERED";
+                    var hasOutstandingDebt = isDeliveredForAlert && order.RemainingAmount > 0;
+                }
+                @if (hasOutstandingDebt)
+                {
+                    <div style="padding: 1rem; background: var(--warning-bg); border: 1px solid var(--warning); border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                        <div style="color: var(--warning); font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <span>Cảnh báo: Đơn hàng đã giao nhưng còn thiếu <strong style="color: var(--error);">@order.RemainingAmount.ToString("N0") VND</strong>. Vui lòng thanh toán đủ để hoàn tất đơn hàng.</span>
                         </div>
                     </div>
                 }

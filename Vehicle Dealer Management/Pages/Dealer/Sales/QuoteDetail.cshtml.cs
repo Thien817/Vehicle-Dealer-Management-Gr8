@@ -121,10 +121,10 @@ namespace Vehicle_Dealer_Management.Pages.Dealer.Sales
                 return NotFound();
             }
 
-            // Validate quote can be converted
-            if (quote.Status != "DRAFT" && quote.Status != "SENT" && quote.Status != "ACCEPTED")
+            // Validate quote can be converted - chỉ cho phép khi customer đã chấp nhận
+            if (quote.Status != "ACCEPTED")
             {
-                TempData["Error"] = "Báo giá này không thể chuyển thành đơn hàng. Chỉ có thể chuyển đổi báo giá ở trạng thái DRAFT, SENT hoặc ACCEPTED.";
+                TempData["Error"] = "Báo giá này không thể chuyển thành đơn hàng. Chỉ có thể chuyển đổi báo giá khi khách hàng đã chấp nhận (trạng thái ACCEPTED).";
                 return RedirectToPage(new { id });
             }
 

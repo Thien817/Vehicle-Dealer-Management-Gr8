@@ -17,7 +17,7 @@
             <a href="/Dealer/Sales/Quotes" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Quay lại
             </a>
-            @if ((Model.Quote.Status == "DRAFT" || Model.Quote.Status == "SENT" || Model.Quote.Status == "ACCEPTED") && !Model.Quote.IsConverted)
+            @if (Model.Quote.Status == "ACCEPTED" && !Model.Quote.IsConverted)
             {
                 <form method="post" asp-page-handler="ConvertToOrder" style="display: inline;">
                     <input type="hidden" name="id" value="@Model.Quote.Id" />
@@ -183,7 +183,7 @@
             </div>
             <div class="card-body">
                 <div class="grid grid-cols-1 gap-2">
-                    @if ((Model.Quote.Status == "DRAFT" || Model.Quote.Status == "SENT" || Model.Quote.Status == "ACCEPTED") && !Model.Quote.IsConverted)
+                    @if (Model.Quote.Status == "ACCEPTED" && !Model.Quote.IsConverted)
                     {
                         <form method="post" asp-page-handler="ConvertToOrder" style="width: 100%;">
                             <input type="hidden" name="id" value="@Model.Quote.Id" />
@@ -191,6 +191,15 @@
                                 <i class="bi bi-file-earmark-check"></i> Chuyển thành đơn hàng
                             </button>
                         </form>
+                    }
+                    else if (Model.Quote.Status != "ACCEPTED" && !Model.Quote.IsConverted)
+                    {
+                        <div class="alert alert-warning" style="width: 100%; margin-bottom: 0.5rem;">
+                            <i class="bi bi-exclamation-triangle"></i> Chỉ có thể chuyển thành đơn hàng khi khách hàng đã chấp nhận báo giá.
+                        </div>
+                    }
+                    @if ((Model.Quote.Status == "DRAFT" || Model.Quote.Status == "SENT") && !Model.Quote.IsConverted)
+                    {
                         <a href="/Dealer/Sales/EditQuote?id=@Model.Quote.Id" class="btn btn-secondary" style="width: 100%;">
                             <i class="bi bi-pencil"></i> Chỉnh sửa báo giá
                         </a>

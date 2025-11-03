@@ -492,6 +492,8 @@ namespace Vehicle_Dealer_Management.Migrations
                     DeliveredDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     HandoverNote = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    CustomerConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    CustomerConfirmedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>

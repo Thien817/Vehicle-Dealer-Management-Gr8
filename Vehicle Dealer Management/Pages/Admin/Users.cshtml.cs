@@ -51,6 +51,7 @@ namespace Vehicle_Dealer_Management.Pages.Admin
             }
         }
 
+
         public async Task<IActionResult> OnGetAsync()
         {
             var authResult = await CheckAuthorizationAsync();
@@ -60,13 +61,14 @@ namespace Vehicle_Dealer_Management.Pages.Admin
             SetViewData();
 
             // Get all roles
-            var roles = await _context.Roles.OrderBy(r => r.Name).ToListAsync();
-            AllRoles = roles.Select(r => new RoleViewModel
-            {
-                Id = r.Id,
-                Code = r.Code,
-                Name = r.Name
-            }).ToList();
+            var roles = await _context.Roles.ToListAsync();
+            AllRoles = roles
+                .Select(r => new RoleViewModel
+                {
+                    Id = r.Id,
+                    Code = r.Code,
+                    Name = r.Name
+                }).ToList();
 
             // Get all dealers
             var dealers = await _dealerService.GetAllDealersAsync();
@@ -81,7 +83,6 @@ namespace Vehicle_Dealer_Management.Pages.Admin
             var users = await _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Dealer)
-                .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
 
             TotalUsers = users.Count;
@@ -91,6 +92,7 @@ namespace Vehicle_Dealer_Management.Pages.Admin
             EvmStaffCount = users.Count(u => u.Role.Code == RoleConstants.EVM_STAFF);
             AdminCount = users.Count(u => u.Role.Code == RoleConstants.EVM_ADMIN);
 
+            // Sắp xếp users theo ID (tăng dần: 1 -> 6)
             Users = users.Select(u => new UserViewModel
             {
                 Id = u.Id,
@@ -103,7 +105,9 @@ namespace Vehicle_Dealer_Management.Pages.Admin
                 DealerName = u.Dealer?.Name ?? "",
                 DealerId = u.DealerId,
                 CreatedAt = u.CreatedAt
-            }).ToList();
+            })
+            .OrderBy(u => u.Id) // Sắp xếp theo ID (tăng dần)
+            .ToList();
 
             return Page();
         }

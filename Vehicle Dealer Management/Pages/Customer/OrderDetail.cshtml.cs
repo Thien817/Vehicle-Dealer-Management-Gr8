@@ -12,17 +12,20 @@ namespace Vehicle_Dealer_Management.Pages.Customer
         private readonly ISalesDocumentService _salesDocumentService;
         private readonly IPaymentService _paymentService;
         private readonly IDeliveryService _deliveryService;
+        private readonly IFeedbackService _feedbackService;
 
         public OrderDetailModel(
             ApplicationDbContext context,
             ISalesDocumentService salesDocumentService,
             IPaymentService paymentService,
-            IDeliveryService deliveryService)
+            IDeliveryService deliveryService,
+            IFeedbackService feedbackService)
         {
             _context = context;
             _salesDocumentService = salesDocumentService;
             _paymentService = paymentService;
             _deliveryService = deliveryService;
+            _feedbackService = feedbackService;
         }
 
         public OrderDetailViewModel Order { get; set; } = null!;
@@ -124,6 +127,21 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 TotalAmount = totalAmount
             };
 
+            // Check if order has been reviewed
+            var review = await _feedbackService.GetReviewByOrderIdAsync(id);
+            Order.HasReview = review != null;
+            if (review != null)
+            {
+                Order.Review = new ReviewViewModel
+                {
+                    Id = review.Id,
+                    Rating = review.Rating ?? 0,
+                    Content = review.Content,
+                    CreatedAt = review.CreatedAt,
+                    UpdatedAt = review.UpdatedAt
+                };
+            }
+
             return Page();
         }
 
@@ -170,6 +188,49 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             return RedirectToPage(new { id });
         }
 
+        public async Task<IActionResult> OnPostDeleteReviewAsync(int orderId)
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToPage("/Auth/Login");
+            }
+
+            var userIdInt = int.Parse(userId);
+            var customer = await _context.CustomerProfiles
+                .FirstOrDefaultAsync(c => c.UserId == userIdInt);
+
+            if (customer == null)
+            {
+                return RedirectToPage("/Auth/Profile");
+            }
+
+            var order = await _salesDocumentService.GetSalesDocumentWithDetailsAsync(orderId);
+            if (order == null || order.CustomerId != customer.Id || order.Type != "ORDER")
+            {
+                return NotFound();
+            }
+
+            var review = await _feedbackService.GetReviewByOrderIdAsync(orderId);
+            if (review == null || review.CustomerId != customer.Id)
+            {
+                TempData["Error"] = "Không tìm thấy đánh giá hoặc bạn không có quyền xóa đánh giá này.";
+                return RedirectToPage(new { id = orderId });
+            }
+
+            try
+            {
+                await _feedbackService.DeleteReviewAsync(review.Id);
+                TempData["Success"] = "Đã xóa đánh giá thành công!";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Lỗi: {ex.Message}";
+            }
+
+            return RedirectToPage(new { id = orderId });
+        }
+
         public class OrderDetailViewModel
         {
             public int Id { get; set; }
@@ -200,6 +261,19 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             public decimal TotalPaid { get; set; }
             public decimal RemainingAmount { get; set; }
             public decimal TotalAmount { get; set; }
+
+            // Review
+            public bool HasReview { get; set; }
+            public ReviewViewModel? Review { get; set; }
+        }
+
+        public class ReviewViewModel
+        {
+            public int Id { get; set; }
+            public int Rating { get; set; }
+            public string? Content { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime? UpdatedAt { get; set; }
         }
 
         public class OrderItemViewModel

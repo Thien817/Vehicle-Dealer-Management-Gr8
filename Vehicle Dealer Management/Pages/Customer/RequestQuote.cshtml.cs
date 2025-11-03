@@ -91,14 +91,110 @@ namespace Vehicle_Dealer_Management.Pages.Customer
 
             var userIdInt = int.Parse(userId);
 
-            // Get customer profile
+            // Get user
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userIdInt);
+
+            if (user == null)
+            {
+                ErrorMessage = "Không tìm thấy thông tin người dùng.";
+                return RedirectToPage("/Auth/Login");
+            }
+
+            // Get or create customer profile
             var customerProfile = await _context.CustomerProfiles
                 .FirstOrDefaultAsync(c => c.UserId == userIdInt);
 
+            // Kiểm tra customer có đơn hàng chưa thanh toán đủ 100% không
+            if (customerProfile != null)
+            {
+                var existingOrders = await _salesDocumentService.GetSalesDocumentsByCustomerIdAsync(customerProfile.Id, "ORDER");
+                foreach (var existingOrder in existingOrders)
+                {
+                    var orderTotal = existingOrder.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0;
+                    var orderPaid = existingOrder.Payments?.Sum(p => p.Amount) ?? 0;
+                    
+                    if (orderTotal > 0 && orderPaid < orderTotal)
+                    {
+                        ErrorMessage = $"Bạn không thể yêu cầu báo giá mới khi còn đơn hàng chưa thanh toán đủ. Đơn hàng #{existingOrder.Id} còn thiếu {(orderTotal - orderPaid):N0} VND. Vui lòng thanh toán đủ 100% đơn hàng trước khi đặt mua xe mới.";
+                        return RedirectToPage("/Customer/MyOrders");
+                    }
+                }
+            }
+
             if (customerProfile == null)
             {
-                ErrorMessage = "Vui lòng cập nhật thông tin cá nhân trước khi yêu cầu báo giá.";
-                return RedirectToPage("/Auth/Profile");
+                // Check if profile exists with same email (but UserId is null)
+                if (!string.IsNullOrEmpty(user.Email))
+                {
+                    var existingProfileByEmail = await _context.CustomerProfiles
+                        .FirstOrDefaultAsync(c => c.Email == user.Email && c.UserId == null);
+                    
+                    if (existingProfileByEmail != null)
+                    {
+                        // Update existing profile to link with this user
+                        existingProfileByEmail.UserId = user.Id;
+                        existingProfileByEmail.FullName = user.FullName ?? existingProfileByEmail.FullName;
+                        existingProfileByEmail.Phone = user.Phone ?? existingProfileByEmail.Phone;
+                        customerProfile = existingProfileByEmail;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                // If still no profile, check by phone
+                if (customerProfile == null && !string.IsNullOrEmpty(user.Phone))
+                {
+                    var existingProfileByPhone = await _context.CustomerProfiles
+                        .FirstOrDefaultAsync(c => c.Phone == user.Phone && c.UserId == null);
+                    
+                    if (existingProfileByPhone != null)
+                    {
+                        // Update existing profile by phone
+                        existingProfileByPhone.UserId = user.Id;
+                        existingProfileByPhone.FullName = user.FullName ?? existingProfileByPhone.FullName;
+                        if (!string.IsNullOrEmpty(user.Email))
+                        {
+                            // Only set email if it doesn't conflict
+                            var emailExists = await _context.CustomerProfiles
+                                .AnyAsync(c => c.Email == user.Email && c.Id != existingProfileByPhone.Id);
+                            if (!emailExists)
+                            {
+                                existingProfileByPhone.Email = user.Email;
+                            }
+                        }
+                        customerProfile = existingProfileByPhone;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                // If still no profile, create new one
+                if (customerProfile == null)
+                {
+                    // Check if email already exists in another profile
+                    string? emailToUse = user.Email;
+                    if (!string.IsNullOrEmpty(user.Email))
+                    {
+                        var emailExists = await _context.CustomerProfiles
+                            .AnyAsync(c => c.Email == user.Email);
+                        if (emailExists)
+                        {
+                            // Email already taken, don't set it to avoid unique constraint violation
+                            emailToUse = null;
+                        }
+                    }
+
+                    customerProfile = new CustomerProfile
+                    {
+                        UserId = user.Id,
+                        FullName = user.FullName ?? "Khách hàng",
+                        Phone = user.Phone ?? "",
+                        Email = emailToUse,
+                        Address = "",
+                        CreatedDate = DateTime.UtcNow
+                    };
+                    _context.CustomerProfiles.Add(customerProfile);
+                    await _context.SaveChangesAsync();
+                }
             }
 
             // Validate dealer

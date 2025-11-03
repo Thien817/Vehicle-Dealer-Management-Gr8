@@ -102,7 +102,21 @@
                                         <span class="text-muted">0</span>
                                     }
                                 </td>
-                                <td>@await Html.PartialAsync("_StatusBadge", order.Status)</td>
+                                <td>
+                                    @{
+                                        // Hiển thị "Còn dư nợ" nếu đã giao nhưng còn nợ
+                                        if (order.DisplayStatus == "DEBT")
+                                        {
+                                            <span class="badge" style="background: var(--warning); color: #000; border: 1px solid var(--warning); font-weight: 600;">
+                                                Còn dư nợ
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            @await Html.PartialAsync("_StatusBadge", order.Status)
+                                        }
+                                    }
+                                </td>
                                 <td>
                                     <a href="/Dealer/Sales/OrderDetail?id=@order.Id" class="btn btn-primary btn-sm">
                                         <i class="bi bi-eye"></i> Chi tiết

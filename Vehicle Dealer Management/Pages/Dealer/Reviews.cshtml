@@ -1,0 +1,108 @@
+@page
+@model Vehicle_Dealer_Management.Pages.Dealer.ReviewsModel
+@{
+    ViewData["Title"] = "Đánh giá từ khách hàng";
+    ViewData["UserRole"] = "DEALER_STAFF";
+    ViewData["UserName"] = HttpContext.Session.GetString("UserName") ?? "Dealer Staff";
+}
+
+<div class="content-header">
+    <h1 class="content-title">Đánh giá từ khách hàng</h1>
+    <p class="content-subtitle">Xem tất cả đánh giá và phản hồi từ khách hàng</p>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-3 mb-4">
+    <div class="stat-card">
+        <div class="stat-label">Tổng đánh giá</div>
+        <div class="stat-value">@Model.TotalReviews</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Đánh giá trung bình</div>
+        <div class="stat-value" style="color: var(--warning);">
+            @if (Model.AverageRating > 0)
+            {
+                <span>@Model.AverageRating.ToString("F1")</span>
+                <span style="font-size: 0.875rem; margin-left: 0.25rem;">/ 5.0</span>
+            }
+            else
+            {
+                <span>Chưa có đánh giá</span>
+            }
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Sao trung bình</div>
+        <div style="display: flex; gap: 0.25rem; font-size: 1.5rem; color: var(--warning); margin-top: 0.5rem;">
+            @{
+                var avgRating = (int)Math.Round(Model.AverageRating);
+            }
+            @for (int i = 1; i <= 5; i++)
+            {
+                <i class="bi @(i <= avgRating ? "bi-star-fill" : "bi-star")"></i>
+            }
+        </div>
+    </div>
+</div>
+
+@if (Model.Reviews.Count == 0)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state" style="padding: 3rem 1rem;">
+                <div class="empty-state-icon">⭐</div>
+                <div class="empty-state-title">Chưa có đánh giá nào</div>
+                <div class="empty-state-text">Chưa có khách hàng nào đánh giá đơn hàng của bạn.</div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; gap: 1rem;">
+                @foreach (var review in Model.Reviews)
+                {
+                    <div style="padding: 1.5rem; background: var(--black); border-radius: var(--radius); border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                                    <div style="font-size: 1.125rem; font-weight: 600;">@review.CustomerName</div>
+                                    <a href="/Dealer/Sales/OrderDetail?id=@review.OrderId" style="color: var(--accent-cyan); text-decoration: none; font-size: 0.875rem;">
+                                        @review.OrderNumber
+                                    </a>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.875rem;">
+                                    @review.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    @if (review.UpdatedAt.HasValue)
+                                    {
+                                        <span>(Đã cập nhật: @review.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm"))</span>
+                                    }
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.25rem; font-size: 1.25rem; color: var(--warning);">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")"></i>
+                                }
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(review.Content))
+                        {
+                            <div style="padding: 0.75rem; background: var(--surface); border-radius: var(--radius-sm); margin-top: 0.75rem;">
+                                @review.Content
+                            </div>
+                        }
+                        <div style="margin-top: 1rem;">
+                            <a href="/Dealer/Sales/OrderDetail?id=@review.OrderId" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-eye"></i> Xem đơn hàng
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+

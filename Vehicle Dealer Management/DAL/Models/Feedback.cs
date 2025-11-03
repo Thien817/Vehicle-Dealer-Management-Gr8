@@ -16,15 +16,19 @@ namespace Vehicle_Dealer_Management.DAL.Models
 
         [Required]
         [StringLength(20)]
-        public string Type { get; set; } = "FEEDBACK"; // FEEDBACK hoặc COMPLAINT
+        public string Type { get; set; } = "FEEDBACK"; // FEEDBACK, COMPLAINT, hoặc REVIEW
 
         [Required]
         [StringLength(20)]
-        public string Status { get; set; } = "NEW"; // NEW, IN_PROGRESS, RESOLVED, REJECTED
+        public string Status { get; set; } = "NEW"; // NEW, IN_PROGRESS, RESOLVED, REJECTED (không dùng cho REVIEW)
 
         [Required]
         [Column(TypeName = "nvarchar(max)")]
-        public string Content { get; set; } = string.Empty; // Nội dung phản hồi/khiếu nại
+        public string Content { get; set; } = string.Empty; // Nội dung phản hồi/khiếu nại/đánh giá
+
+        // For REVIEW type only
+        public int? Rating { get; set; } // 1-5 sao (chỉ dùng khi Type = REVIEW)
+        public int? OrderId { get; set; } // SalesDocument ID (chỉ dùng khi Type = REVIEW, để liên kết với đơn hàng)
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -38,6 +42,9 @@ namespace Vehicle_Dealer_Management.DAL.Models
 
         [ForeignKey("DealerId")]
         public virtual Dealer? Dealer { get; set; }
+
+        [ForeignKey("OrderId")]
+        public virtual SalesDocument? Order { get; set; }
     }
 }
 
