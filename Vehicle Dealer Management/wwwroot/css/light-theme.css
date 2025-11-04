@@ -28,8 +28,8 @@
     --warning-bg: #FFF3CD;
     --error: #DC3545;
     --error-bg: #F8D7DA;
-    --info: #0DCAF0;
-    --info-bg: #CFF4FC;
+    --info: #198754;            /* Changed from cyan #0DCAF0 to green #198754 */
+    --info-bg: #D1E7DD;         /* Changed from cyan bg #CFF4FC to green bg #D1E7DD */
     
     /* Spacing */
     --radius: 16px;
@@ -646,7 +646,7 @@ select.form-control {
 
 .badge-info {
     background: var(--info-bg);
-    color: #055160;
+    color: var(--success);      /* Changed from #055160 (cyan text) to var(--success) (green) */
     border: 1px solid var(--info);
 }
 
