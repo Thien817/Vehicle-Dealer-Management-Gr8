@@ -19,7 +19,7 @@
     
     /* Accent Colors */
     --accent: #000000;          /* highlights/CTA (use sparingly) */
-    --accent-cyan: #0D6EFD;     /* links/CTA accent - blue */
+    --accent-cyan: #198754;     /* links/CTA accent - green instead of blue */
     
     /* Status Colors */
     --success: #198754;
@@ -164,7 +164,7 @@ a:hover {
 }
 
 .nav-item.active {
-    background: #0D6EFD;
+    background: #198754;
     color: #FFFFFF;
 }
 
@@ -234,7 +234,7 @@ a:hover {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: var(--accent-cyan);
+    background: #198754;
     color: #FFFFFF;
     display: flex;
     align-items: center;
@@ -449,8 +449,8 @@ a:hover {
 
 .form-control:focus {
     outline: none;
-    border-color: var(--accent-cyan);
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    border-color: #198754;
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.1);
 }
 
 .form-control::placeholder {
@@ -493,14 +493,14 @@ select.form-control {
 }
 
 .btn-primary {
-    background: var(--accent-cyan);
+    background: #198754;
     color: #FFFFFF;
 }
 
 .btn-primary:hover {
-    background: #0B5ED7;
+    background: #157347;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+    box-shadow: 0 4px 8px rgba(25, 135, 84, 0.2);
 }
 
 .btn-secondary {
@@ -755,8 +755,8 @@ select.form-control {
 
 .back-button:hover {
     background: #F8F9FA;
-    border-color: var(--accent-cyan);
-    color: var(--accent-cyan);
+    border-color: #198754;
+    color: #198754;
     transform: translateX(-2px);
 }
 
@@ -780,19 +780,19 @@ select.form-control {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-cyan), #0B5ED7);
+    background: linear-gradient(135deg, #198754, #157347);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
     transition: all 0.3s ease;
     border: 2px solid #FFFFFF;
 }
 
 .ai-chat-bubble:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(13, 110, 253, 0.4);
+    box-shadow: 0 6px 20px rgba(25, 135, 84, 0.4);
 }
 
 .ai-chat-bubble i {
@@ -839,7 +839,7 @@ select.form-control {
 }
 
 .ai-chat-header-title i {
-    color: var(--accent-cyan);
+    color: #198754;
     font-size: 1.25rem;
 }
 
@@ -906,12 +906,12 @@ select.form-control {
 }
 
 .ai-chat-message.user .ai-chat-message-avatar {
-    background: var(--accent-cyan);
+    background: #198754;
     color: #FFFFFF;
 }
 
 .ai-chat-message.ai .ai-chat-message-avatar {
-    background: linear-gradient(135deg, var(--accent-cyan), #0B5ED7);
+    background: linear-gradient(135deg, #198754, #157347);
     color: #FFFFFF;
 }
 
@@ -925,7 +925,7 @@ select.form-control {
 }
 
 .ai-chat-message.user .ai-chat-message-content {
-    background: var(--accent-cyan);
+    background: #198754;
     color: #FFFFFF;
     border-bottom-right-radius: 4px;
 }
@@ -960,12 +960,12 @@ select.form-control {
 
 .ai-chat-input:focus {
     outline: none;
-    border-color: var(--accent-cyan);
+    border-color: #198754;
 }
 
 .ai-chat-send {
     padding: 0.75rem 1rem;
-    background: var(--accent-cyan);
+    background: #198754;
     color: #FFFFFF;
     border: none;
     border-radius: var(--radius-sm);
@@ -979,7 +979,7 @@ select.form-control {
 }
 
 .ai-chat-send:hover:not(:disabled) {
-    background: #0B5ED7;
+    background: #157347;
     transform: translateY(-1px);
 }
 
@@ -1001,7 +1001,7 @@ select.form-control {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--accent-cyan);
+    background: #198754;
     animation: bounce 1.4s infinite ease-in-out both;
 }
 
