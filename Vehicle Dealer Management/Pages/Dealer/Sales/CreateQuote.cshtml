@@ -11,189 +11,273 @@
     <p class="content-subtitle">Tạo báo giá cho khách hàng</p>
 </div>
 
-<form method="post">
-    <div class="grid grid-cols-3 gap-3">
-        <!-- Left Column: Customer & Vehicle Selection -->
-        <div style="grid-column: span 2;">
-            <!-- Customer Selection -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h3 class="card-title mb-0">Thông tin khách hàng</h3>
-                </div>
-                <div class="card-body">
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="form-group">
-                            <label class="form-label">Chọn khách hàng</label>
-                            <select class="form-control" name="customerId" required>
-                                <option value="">-- Chọn khách hàng --</option>
-                                @foreach (var customer in Model.Customers)
-                                {
-                                    <option value="@customer.Id">@customer.Name - @customer.Phone</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" style="opacity: 0;">Action</label>
-                            <button type="button" class="btn btn-secondary" style="width: 100%;">
-                                <i class="bi bi-person-plus"></i> Khách hàng mới
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-error mb-4" style="padding: 1rem; background: var(--error-bg); border: 1px solid var(--error); border-radius: var(--radius); color: var(--error);">
+        <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+    </div>
+}
 
-            <!-- Vehicle Selection -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h3 class="card-title mb-0">Chọn xe</h3>
-                </div>
-                <div class="card-body">
-                    <div class="grid grid-cols-2 gap-2 mb-3">
-                        <div class="form-group mb-0">
-                            <label class="form-label">Mẫu xe</label>
-                            <select class="form-control" id="vehicleSelect" name="vehicleId" required>
-                                <option value="">-- Chọn xe --</option>
-                                @foreach (var vehicle in Model.Vehicles)
-                                {
-                                    <option value="@vehicle.Id" data-price="@vehicle.Msrp">
-                                        @vehicle.Name @vehicle.Variant - @vehicle.Msrp.ToString("N0") VND
-                                    </option>
-                                }
-                            </select>
-                        </div>
-                        <div class="form-group mb-0">
-                            <label class="form-label">Màu sắc</label>
-                            <select class="form-control" name="color" required>
-                                <option value="">-- Chọn màu --</option>
-                                <option value="BLACK">Đen</option>
-                                <option value="WHITE">Trắng</option>
-                                <option value="RED">Đỏ</option>
-                                <option value="BLUE">Xanh dương</option>
-                                <option value="GRAY">Xám</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Số lượng</label>
-                        <input type="number" class="form-control" name="quantity" value="1" min="1" required />
-                    </div>
-
-                    <button type="button" class="btn btn-secondary btn-sm">
-                        <i class="bi bi-plus"></i> Thêm xe khác
-                    </button>
-                </div>
-            </div>
-
-            <!-- Selected Vehicles Table -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title mb-0">Danh sách xe đã chọn</h3>
-                </div>
-                <div class="card-body">
-                    <div class="table-container">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Xe</th>
-                                    <th>Màu</th>
-                                    <th>Số lượng</th>
-                                    <th>Đơn giá</th>
-                                    <th>Thành tiền</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="selectedVehicles">
-                                <tr>
-                                    <td colspan="6" class="text-center text-muted">
-                                        Chưa có xe được chọn
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Column: Summary & Actions -->
-        <div>
-            <!-- Promotion -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h3 class="card-title mb-0">Khuyến mãi</h3>
-                </div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label class="form-label">Chương trình</label>
-                        <select class="form-control" name="promotionId">
-                            <option value="">-- Không áp dụng --</option>
-                            @foreach (var promo in Model.Promotions)
-                            {
-                                <option value="@promo.Id">@promo.Name</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="form-group mb-0">
-                        <label class="form-label">Giảm giá thêm (VND)</label>
-                        <input type="number" class="form-control" name="additionalDiscount" value="0" min="0" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Summary -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h3 class="card-title mb-0">Tổng kết</h3>
-                </div>
-                <div class="card-body">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-muted">Tạm tính</span>
-                        <strong id="subtotal">0 VND</strong>
-                    </div>
-                    <div class="flex justify-between mb-2">
-                        <span class="text-muted">Giảm giá</span>
-                        <strong style="color: var(--success);" id="discount">0 VND</strong>
-                    </div>
-                    <hr style="border-color: var(--border);" />
-                    <div class="flex justify-between mb-3">
-                        <span style="font-size: 1.125rem;"><strong>Tổng cộng</strong></span>
-                        <strong style="font-size: 1.25rem; color: var(--accent-cyan);" id="total">0 VND</strong>
-                    </div>
-
-                    <div class="form-group mb-0">
-                        <label class="form-label">Ghi chú</label>
-                        <textarea class="form-control" name="note" rows="3" placeholder="Ghi chú thêm..."></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="card">
-                <div class="card-body">
-                    <button type="submit" name="action" value="draft" class="btn btn-secondary btn-block mb-2">
-                        <i class="bi bi-save"></i> Lưu nháp
-                    </button>
-                    <button type="submit" name="action" value="send" class="btn btn-primary btn-block">
-                        <i class="bi bi-send"></i> Gửi báo giá
-                    </button>
-                    <a href="/Dealer/Sales/Quotes" class="btn btn-secondary btn-block mt-2" style="text-align: center;">
-                        Hủy
-                    </a>
-                </div>
-            </div>
+@if (!Model.Vehicles.Any())
+{
+    <div class="card">
+        <div class="card-body text-center" style="padding: 3rem;">
+            <i class="bi bi-inbox" style="font-size: 3rem; color: var(--text-muted); display: block; margin-bottom: 1rem;"></i>
+            <h3>Chưa có xe trong kho</h3>
+            <p class="text-muted">Hiện tại đại lý chưa có xe nào được phân phối từ EVM. Vui lòng liên hệ EVM để nhận phân phối xe.</p>
+            <a href="/Dealer/Dashboard" class="btn btn-secondary mt-3">
+                <i class="bi bi-arrow-left"></i> Quay lại Dashboard
+            </a>
         </div>
     </div>
-</form>
+}
+else
+{
+    <form method="post">
+        <div class="grid grid-cols-3 gap-3">
+            <!-- Left Column: Customer & Vehicle Selection -->
+            <div style="grid-column: span 2;">
+                <!-- Customer Selection -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Thông tin khách hàng</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="form-group">
+                                <label class="form-label">Chọn khách hàng</label>
+                                <select class="form-control" name="customerId" required>
+                                    <option value="">-- Chọn khách hàng --</option>
+                                    @foreach (var customer in Model.Customers)
+                                    {
+                                        <option value="@customer.Id">@customer.Name - @customer.Phone</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="opacity: 0;">Action</label>
+                                <button type="button" class="btn btn-secondary" style="width: 100%;">
+                                    <i class="bi bi-person-plus"></i> Khách hàng mới
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicle Selection -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Chọn xe</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div class="form-group mb-0">
+                                <label class="form-label">Mẫu xe</label>
+                                <select class="form-control" id="vehicleSelect" name="vehicleId" required onchange="updateColors()">
+                                    <option value="">-- Chọn xe --</option>
+                                    @foreach (var vehicle in Model.Vehicles)
+                                    {
+                                        <option value="@vehicle.Id"
+                                                data-price="@vehicle.Msrp"
+                                                data-qty="@vehicle.AvailableQty"
+                                                data-colors="@string.Join(",", vehicle.AvailableColors.Select(c => c.Color + ":" + c.Qty))">
+                                            @vehicle.Name @vehicle.Variant - @vehicle.Msrp.ToString("N0") VND (Còn @vehicle.AvailableQty xe)
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label">Màu sắc</label>
+                                <select class="form-control" id="colorSelect" name="color" required>
+                                    <option value="">-- Chọn xe trước --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Số lượng</label>
+                            <input type="number" class="form-control" id="quantityInput" name="quantity" value="1" min="1" required />
+                            <small class="form-text" id="quantityHelp">Số lượng có sẵn: 0</small>
+                        </div>
+
+                        <button type="button" class="btn btn-secondary btn-sm">
+                            <i class="bi bi-plus"></i> Thêm xe khác
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selected Vehicles Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Danh sách xe đã chọn</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Xe</th>
+                                        <th>Màu</th>
+                                        <th>Số lượng</th>
+                                        <th>Đơn giá</th>
+                                        <th>Thành tiền</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="selectedVehicles">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">
+                                            Chưa có xe được chọn
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Summary & Actions -->
+            <div>
+                <!-- Promotion -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Khuyến mãi</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Chương trình</label>
+                            <select class="form-control" name="promotionId">
+                                <option value="">-- Không áp dụng --</option>
+                                @foreach (var promo in Model.Promotions)
+                                {
+                                    <option value="@promo.Id">@promo.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Giảm giá thêm (VND)</label>
+                            <input type="number" class="form-control" name="additionalDiscount" value="0" min="0" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Tổng kết</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-muted">Tạm tính</span>
+                            <strong id="subtotal">0 VND</strong>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-muted">Giảm giá</span>
+                            <strong style="color: var(--success);" id="discount">0 VND</strong>
+                        </div>
+                        <hr style="border-color: var(--border);" />
+                        <div class="flex justify-between mb-3">
+                            <span style="font-size: 1.125rem;"><strong>Tổng cộng</strong></span>
+                            <strong style="font-size: 1.25rem; color: var(--accent-cyan);" id="total">0 VND</strong>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label">Ghi chú</label>
+                            <textarea class="form-control" name="note" rows="3" placeholder="Ghi chú thêm..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <button type="submit" name="action" value="draft" class="btn btn-secondary btn-block mb-2">
+                            <i class="bi bi-save"></i> Lưu nháp
+                        </button>
+                        <button type="submit" name="action" value="send" class="btn btn-primary btn-block">
+                            <i class="bi bi-send"></i> Gửi báo giá
+                        </button>
+                        <a href="/Dealer/Sales/Quotes" class="btn btn-secondary btn-block mt-2" style="text-align: center;">
+                            Hủy
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+}
 
 @section Scripts {
     <script>
-        // Simple calculation demo
-        document.getElementById('vehicleSelect')?.addEventListener('change', function() {
-            const price = this.selectedOptions[0]?.dataset.price || 0;
+        let vehicleColors = {};
+
+        function updateColors() {
+            const select = document.getElementById('vehicleSelect');
+            const colorSelect = document.getElementById('colorSelect');
+            const quantityInput = document.getElementById('quantityInput');
+            const quantityHelp = document.getElementById('quantityHelp');
+
+            if (!select.value) {
+                colorSelect.innerHTML = '<option value="">-- Chọn xe trước --</option>';
+                quantityHelp.textContent = 'Số lượng có sẵn: 0';
+                return;
+            }
+
+            const option = select.selectedOptions[0];
+            const price = option.dataset.price;
+            const totalQty = option.dataset.qty;
+            const colorsData = option.dataset.colors;
+
+            // Parse colors data
+            const colors = colorsData.split(',').map(c => {
+                const [color, qty] = c.split(':');
+                return { color, qty: parseInt(qty) };
+            });
+
+            // Update color dropdown
+            colorSelect.innerHTML = '<option value="">-- Chọn màu --</option>';
+            colors.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.color;
+                opt.textContent = `${c.color} (Còn ${c.qty} xe)`;
+                opt.dataset.qty = c.qty;
+                colorSelect.appendChild(opt);
+            });
+
+            // Update quantity max
+            quantityInput.max = totalQty;
+            quantityHelp.textContent = `Số lượng có sẵn: ${totalQty}`;
+
+            // Update price
             document.getElementById('subtotal').textContent = parseInt(price).toLocaleString('vi-VN') + ' VND';
             document.getElementById('total').textContent = parseInt(price).toLocaleString('vi-VN') + ' VND';
+        }
+
+        // Update max quantity when color changes
+        document.getElementById('colorSelect')?.addEventListener('change', function() {
+            const option = this.selectedOptions[0];
+            if (option && option.dataset.qty) {
+                const qty = parseInt(option.dataset.qty);
+                const quantityInput = document.getElementById('quantityInput');
+                quantityInput.max = qty;
+                document.getElementById('quantityHelp').textContent = `Số lượng có sẵn: ${qty}`;
+            }
+        });
+
+        // Validate quantity on input
+        document.getElementById('quantityInput')?.addEventListener('input', function() {
+            const max = parseInt(this.max);
+            const val = parseInt(this.value);
+            const helpText = document.getElementById('quantityHelp');
+
+            if (val > max) {
+                helpText.textContent = `⚠️ Vượt quá số lượng có sẵn (${max})`;
+                helpText.style.color = 'var(--error)';
+            } else {
+                helpText.textContent = `Số lượng có sẵn: ${max}`;
+                helpText.style.color = 'var(--text-muted)';
+            }
         });
     </script>
 }
-

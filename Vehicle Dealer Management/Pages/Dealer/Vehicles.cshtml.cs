@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Vehicle_Dealer_Management.BLL.IService;
 
@@ -30,18 +30,31 @@ namespace Vehicle_Dealer_Management.Pages.Dealer
                 return RedirectToPage("/Auth/Login");
             }
 
-            // Get all vehicles with price policies and stocks
-            var vehicles = await _vehicleService.GetAvailableVehiclesAsync();
-
             var dealerIdInt = int.Parse(dealerId);
 
-            foreach (var vehicle in vehicles)
-            {
-                // Get price policy (dealer-specific or global)
-                var pricePolicy = await _pricePolicyService.GetActivePricePolicyAsync(vehicle.Id, dealerIdInt);
+            // ✅ THAY ĐỔI: Chỉ lấy xe trong kho DEALER, không phải EVM
+            var dealerStocks = await _stockService.GetStocksByOwnerAsync("DEALER", dealerIdInt);
 
-                // Get stock colors available at EVM (dealer can order from EVM)
-                var stocks = await _stockService.GetAvailableStocksByVehicleIdAsync(vehicle.Id, "EVM");
+            // Group by VehicleId để tránh trùng lặp
+            var vehicleGroups = dealerStocks.GroupBy(s => s.VehicleId);
+
+            foreach (var group in vehicleGroups)
+            {
+                var vehicleId = group.Key;
+
+                // Get vehicle details
+                var vehicle = await _vehicleService.GetVehicleByIdAsync(vehicleId);
+                if (vehicle == null || vehicle.Status != "AVAILABLE") continue;
+
+                // Get price policy
+                var pricePolicy = await _pricePolicyService.GetActivePricePolicyAsync(vehicleId, dealerIdInt);
+
+                // Get available colors from dealer stock
+                var colorStocks = group.Select(s => new ColorStock
+                {
+                    Color = s.ColorCode,
+                    Qty = (int)s.Qty
+                }).ToList();
 
                 Vehicles.Add(new VehicleViewModel
                 {
@@ -52,11 +65,7 @@ namespace Vehicle_Dealer_Management.Pages.Dealer
                     Status = vehicle.Status,
                     Msrp = pricePolicy?.Msrp ?? 0,
                     WholesalePrice = pricePolicy?.WholesalePrice ?? 0,
-                    AvailableColors = stocks.Select(s => new ColorStock
-                    {
-                        Color = s.ColorCode,
-                        Qty = (int)s.Qty
-                    }).ToList()
+                    AvailableColors = colorStocks
                 });
             }
 
@@ -82,4 +91,3 @@ namespace Vehicle_Dealer_Management.Pages.Dealer
         }
     }
 }
-

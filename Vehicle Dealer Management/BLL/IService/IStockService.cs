@@ -12,6 +12,7 @@ namespace Vehicle_Dealer_Management.BLL.IService
         Task<Stock> CreateOrUpdateStockAsync(string ownerType, int ownerId, int vehicleId, string colorCode, decimal qty);
         Task<Stock> UpdateStockQtyAsync(int stockId, decimal newQty);
         Task<bool> StockExistsAsync(int id);
+        Task<bool> DistributeStockToDealerAsync(int evmStockId, int dealerId, int quantity);
     }
 }
 

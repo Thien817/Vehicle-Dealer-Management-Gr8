@@ -31,6 +31,19 @@
     </script>
 }
 
+@if (TempData["Error"] != null)
+{
+    <div id="errorToast" style="position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 1rem 1.5rem; background: var(--error-bg); border: 1px solid var(--error); border-radius: var(--radius); color: var(--error); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+    </div>
+    <script>
+        setTimeout(function() {
+            var toast = document.getElementById('errorToast');
+            if (toast) toast.style.display = 'none';
+        }, 5000);
+    </script>
+}
+
 <!-- Summary Cards -->
 <div class="grid grid-cols-4 mb-4">
     <div class="stat-card">
@@ -55,87 +68,177 @@
     </div>
 </div>
 
-<!-- Stocks Table -->
+<!-- Tabs -->
 <div class="card">
-    <div class="card-header">
-        <div class="flex justify-between items-center">
-            <h3 class="card-title mb-0">Chi tiết tồn kho</h3>
-            <div class="flex gap-2">
-                <select class="form-control" style="width: 200px;">
-                    <option>Tất cả</option>
-                    <option>EVM</option>
-                    <option>Đại lý</option>
-                </select>
-                <button class="btn btn-secondary btn-sm">
-                    <i class="bi bi-download"></i> Xuất Excel
-                </button>
+    <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0;">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('inventory')">
+                <i class="bi bi-box-seam"></i> Quản lý kho
+            </button>
+            <button class="tab-btn" onclick="switchTab('distribute')">
+                <i class="bi bi-truck"></i> Phân phối xe
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab 1: Quản lý kho -->
+    <div id="inventoryTab" class="tab-content active">
+        <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="card-title mb-0">Chi tiết tồn kho</h3>
+                <div class="flex gap-2">
+                    <select class="form-control" style="width: 200px;">
+                        <option>Tất cả</option>
+                        <option>EVM</option>
+                        <option>Đại lý</option>
+                    </select>
+                    <button class="btn btn-secondary btn-sm">
+                        <i class="bi bi-download"></i> Xuất Excel
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Mẫu xe</th>
+                            <th>Màu sắc</th>
+                            <th>Chủ sở hữu</th>
+                            <th>Tên</th>
+                            <th>Số lượng</th>
+                            <th>Giá ước tính</th>
+                            <th>Cập nhật</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var stock in Model.Stocks)
+                        {
+                            var isLowStock = stock.Qty < 10;
+
+                            <tr>
+                                <td><strong>@stock.VehicleName</strong></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div style="width: 16px; height: 16px; border-radius: 50%; background: @GetColorHex(stock.Color); border: 1px solid var(--border);"></div>
+                                        <span>@stock.Color</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (stock.OwnerType == "EVM")
+                                    {
+                                        <span class="badge badge-info">EVM</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-default">Đại lý</span>
+                                    }
+                                </td>
+                                <td>@stock.OwnerName</td>
+                                <td>
+                                    @if (isLowStock)
+                                    {
+                                        <strong style="color: var(--error); font-size: 1.125rem;">@stock.Qty</strong>
+                                        <i class="bi bi-exclamation-triangle" style="color: var(--error);"></i>
+                                    }
+                                    else
+                                    {
+                                        <strong style="font-size: 1.125rem;">@stock.Qty</strong>
+                                    }
+                                </td>
+                                <td>@stock.EstimatedValue.ToString("N0") VND</td>
+                                <td>@stock.UpdatedDate.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    @if (stock.OwnerType == "EVM")
+                                    {
+                                        <button class="btn btn-secondary btn-sm" onclick="editStock(@stock.Id, @stock.Qty)">
+                                            <i class="bi bi-pencil"></i> Sửa
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-    <div class="card-body">
-        <div class="table-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Mẫu xe</th>
-                        <th>Màu sắc</th>
-                        <th>Chủ sở hữu</th>
-                        <th>Tên</th>
-                        <th>Số lượng</th>
-                        <th>Giá ước tính</th>
-                        <th>Cập nhật</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var stock in Model.Stocks)
-                    {
-                        var isLowStock = stock.Qty < 10;
-                        
+
+    <!-- Tab 2: Phân phối xe -->
+    <div id="distributeTab" class="tab-content">
+        <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="card-title mb-0">Phân phối xe tới đại lý</h3>
+                    <p class="text-muted" style="font-size: 0.875rem; margin-top: 0.25rem;">Chọn xe từ kho EVM để phân phối cho đại lý</p>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
                         <tr>
-                            <td><strong>@stock.VehicleName</strong></td>
-                            <td>
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <div style="width: 16px; height: 16px; border-radius: 50%; background: @GetColorHex(stock.Color); border: 1px solid var(--border);"></div>
-                                    <span>@stock.Color</span>
-                                </div>
-                            </td>
-                            <td>
-                                @if (stock.OwnerType == "EVM")
-                                {
-                                    <span class="badge badge-info">EVM</span>
-                                }
-                                else
-                                {
-                                    <span class="badge badge-default">Đại lý</span>
-                                }
-                            </td>
-                            <td>@stock.OwnerName</td>
-                            <td>
-                                @if (isLowStock)
-                                {
-                                    <strong style="color: var(--error); font-size: 1.125rem;">@stock.Qty</strong>
-                                    <i class="bi bi-exclamation-triangle" style="color: var(--error);"></i>
-                                }
-                                else
-                                {
-                                    <strong style="font-size: 1.125rem;">@stock.Qty</strong>
-                                }
-                            </td>
-                            <td>@stock.EstimatedValue.ToString("N0") VND</td>
-                            <td>@stock.UpdatedDate.ToString("dd/MM/yyyy")</td>
-                            <td>
-                                @if (stock.OwnerType == "EVM")
-                                {
-                                    <button class="btn btn-secondary btn-sm" onclick="editStock(@stock.Id, @stock.Qty)">
-                                        <i class="bi bi-pencil"></i> Sửa
-                                    </button>
-                                }
-                            </td>
+                            <th>Mẫu xe</th>
+                            <th>Màu sắc</th>
+                            <th>Số lượng có sẵn</th>
+                            <th>Giá trị</th>
+                            <th>Thao tác</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @{
+                            var evmStocks = Model.Stocks.Where(s => s.OwnerType == "EVM").ToList();
+                            if (!evmStocks.Any())
+                            {
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                        <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                                        Không có xe nào trong kho EVM
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var stock in evmStocks)
+                                {
+                                    <tr>
+                                        <td><strong>@stock.VehicleName</strong></td>
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <div style="width: 16px; height: 16px; border-radius: 50%; background: @GetColorHex(stock.Color); border: 1px solid var(--border);"></div>
+                                                <span>@stock.Color</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <strong style="font-size: 1.125rem; color: @(stock.Qty < 10 ? "var(--error)" : "var(--text)");">
+                                                @stock.Qty
+                                            </strong>
+                                            @if (stock.Qty < 10)
+                                            {
+                                                <i class="bi bi-exclamation-triangle" style="color: var(--error); margin-left: 0.25rem;"></i>
+                                            }
+                                        </td>
+                                        <td>@stock.EstimatedValue.ToString("N0") VND</td>
+                                        <td>
+                                            @if (stock.Qty > 0)
+                                            {
+                                                <button class="btn btn-primary btn-sm" onclick="openDistributeModal(@stock.Id, '@stock.VehicleName', '@stock.Color', @stock.Qty)">
+                                                    <i class="bi bi-truck"></i> Phân phối
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-secondary btn-sm" disabled>
+                                                    <i class="bi bi-x-circle"></i> Hết hàng
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -188,12 +291,6 @@
             <h3 class="card-title mb-0">Cập nhật số lượng tồn kho</h3>
         </div>
         <div class="card-body">
-            @if (TempData["Error"] != null)
-            {
-                <div class="alert alert-error" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--error-bg); border: 1px solid var(--error); border-radius: var(--radius-sm); color: var(--error);">
-                    <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
-                </div>
-            }
             <form method="post" asp-page-handler="UpdateStock">
                 <input type="hidden" id="editStockId" name="stockId" />
                 <div class="form-group">
@@ -214,8 +311,83 @@
     </div>
 </div>
 
+<!-- Distribute Stock Modal -->
+<div id="distributeStockModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 500px; width: 90%;">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Phân phối xe tới đại lý</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-page-handler="DistributeStock" onsubmit="return validateDistribute()">
+                <input type="hidden" id="distributeStockId" name="stockId" />
+                <input type="hidden" id="maxQuantity" />
+
+                <div style="padding: 1rem; background: var(--surface); border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="color: var(--text-muted);">Xe:</span>
+                        <strong id="distributeVehicleName"></strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="color: var(--text-muted);">Màu:</span>
+                        <span id="distributeVehicleColor"></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-muted);">Có sẵn:</span>
+                        <strong id="distributeAvailableQty" style="color: var(--primary);"></strong>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Chọn đại lý *</label>
+                    <select class="form-control" name="dealerId" id="dealerSelect" required>
+                        <option value="">-- Chọn đại lý --</option>
+                        @foreach (var dealer in Model.Dealers)
+                        {
+                            <option value="@dealer.Id">@dealer.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Số lượng phân phối *</label>
+                    <input type="number" class="form-control" id="distributeQuantity" name="quantity" required min="1" />
+                    <small class="form-text" id="quantityHelp">Nhập số lượng muốn phân phối</small>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-truck"></i> Phân phối
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeDistributeModal()">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            if (tabName === 'inventory') {
+                document.getElementById('inventoryTab').classList.add('active');
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            } else if (tabName === 'distribute') {
+                document.getElementById('distributeTab').classList.add('active');
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            }
+        }
+
+        // Edit stock
         function editStock(id, currentQty) {
             document.getElementById('editStockId').value = id;
             document.getElementById('currentQtyDisplay').value = currentQty;
@@ -223,7 +395,107 @@
             document.getElementById('editStockModal').style.display = 'flex';
             document.getElementById('newQtyInput').focus();
         }
+
+        // Distribute stock
+        function openDistributeModal(stockId, vehicleName, color, availableQty) {
+            document.getElementById('distributeStockId').value = stockId;
+            document.getElementById('maxQuantity').value = availableQty;
+            document.getElementById('distributeVehicleName').textContent = vehicleName;
+            document.getElementById('distributeVehicleColor').textContent = color;
+            document.getElementById('distributeAvailableQty').textContent = availableQty + ' xe';
+            document.getElementById('distributeQuantity').value = '';
+            document.getElementById('distributeQuantity').max = availableQty;
+            document.getElementById('dealerSelect').value = '';
+            document.getElementById('distributeStockModal').style.display = 'flex';
+            document.getElementById('dealerSelect').focus();
+        }
+
+        function closeDistributeModal() {
+            document.getElementById('distributeStockModal').style.display = 'none';
+        }
+
+        function validateDistribute() {
+            const quantity = parseInt(document.getElementById('distributeQuantity').value);
+            const maxQty = parseInt(document.getElementById('maxQuantity').value);
+            const dealerId = document.getElementById('dealerSelect').value;
+
+            if (!dealerId) {
+                alert('Vui lòng chọn đại lý!');
+                return false;
+            }
+
+            if (quantity <= 0) {
+                alert('Số lượng phải lớn hơn 0!');
+                return false;
+            }
+
+            if (quantity > maxQty) {
+                alert(`Số lượng không được vượt quá ${maxQty} xe!`);
+                return false;
+            }
+
+            return true;
+        }
+
+        // Update quantity help text
+        document.addEventListener('DOMContentLoaded', function() {
+            const qtyInput = document.getElementById('distributeQuantity');
+            if (qtyInput) {
+                qtyInput.addEventListener('input', function() {
+                    const val = parseInt(this.value);
+                    const max = parseInt(document.getElementById('maxQuantity').value);
+                    const helpText = document.getElementById('quantityHelp');
+
+                    if (val > max) {
+                        helpText.textContent = `⚠️ Vượt quá số lượng có sẵn (${max} xe)`;
+                        helpText.style.color = 'var(--error)';
+                    } else {
+                        helpText.textContent = 'Nhập số lượng muốn phân phối';
+                        helpText.style.color = 'var(--text-muted)';
+                    }
+                });
+            }
+        });
     </script>
+
+    <style>
+        .tabs {
+            display: flex;
+            gap: 0;
+        }
+
+        .tab-btn {
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+            .tab-btn:hover {
+                color: var(--text);
+                background: var(--surface);
+            }
+
+            .tab-btn.active {
+                color: var(--primary);
+                border-bottom-color: var(--primary);
+            }
+
+        .tab-content {
+            display: none;
+        }
+
+            .tab-content.active {
+                display: block;
+            }
+    </style>
 }
 
 @functions {
@@ -240,4 +512,3 @@
         };
     }
 }
-

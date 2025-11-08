@@ -1,4 +1,4 @@
-using Vehicle_Dealer_Management.DAL.Models;
+﻿using Vehicle_Dealer_Management.DAL.Models;
 using Vehicle_Dealer_Management.DAL.IRepository;
 using Vehicle_Dealer_Management.BLL.IService;
 
@@ -124,6 +124,87 @@ namespace Vehicle_Dealer_Management.BLL.Services
         public async Task<bool> StockExistsAsync(int id)
         {
             return await _stockRepository.ExistsAsync(id);
+        }
+
+        public async Task<bool> DistributeStockToDealerAsync(int evmStockId, int dealerId, int quantity)
+        {
+            if (quantity <= 0)
+            {
+                throw new ArgumentException("Số lượng phân phối phải lớn hơn 0", nameof(quantity));
+            }
+
+            // Get EVM stock
+            var evmStock = await _stockRepository.GetByIdAsync(evmStockId);
+            if (evmStock == null)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy tồn kho EVM với ID {evmStockId}");
+            }
+
+            // Validate owner type
+            if (evmStock.OwnerType != "EVM")
+            {
+                throw new InvalidOperationException("Chỉ có thể phân phối từ kho EVM");
+            }
+
+            // Check sufficient quantity
+            if (evmStock.Qty < quantity)
+            {
+                throw new InvalidOperationException($"Không đủ hàng trong kho. Có sẵn: {evmStock.Qty}, yêu cầu: {quantity}");
+            }
+
+            // Get vehicle info for dealer stock name
+            var vehicle = await _vehicleRepository.GetByIdAsync(evmStock.VehicleId);
+            if (vehicle == null)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy xe với ID {evmStock.VehicleId}");
+            }
+
+            try
+            {
+                // 1. Giảm số lượng tồn kho EVM
+                evmStock.Qty -= quantity;
+                evmStock.UpdatedDate = DateTime.UtcNow;
+                await _stockRepository.UpdateAsync(evmStock);
+
+                // 2. Kiểm tra xem dealer đã có stock này chưa
+                var dealerStock = await _stockRepository.GetStockByOwnerAndVehicleAsync(
+                    "DEALER",
+                    dealerId,
+                    evmStock.VehicleId,
+                    evmStock.ColorCode
+                );
+
+                if (dealerStock != null)
+                {
+                    // Cộng thêm vào stock hiện có
+                    dealerStock.Qty += quantity;
+                    dealerStock.UpdatedDate = DateTime.UtcNow;
+                    dealerStock.Name = $"{vehicle.ModelName} {vehicle.VariantName}";
+                    await _stockRepository.UpdateAsync(dealerStock);
+                }
+                else
+                {
+                    // Tạo stock mới cho dealer
+                    var newDealerStock = new Stock
+                    {
+                        OwnerType = "DEALER",
+                        OwnerId = dealerId,
+                        VehicleId = evmStock.VehicleId,
+                        ColorCode = evmStock.ColorCode,
+                        Name = $"{vehicle.ModelName} {vehicle.VariantName}",
+                        Qty = quantity,
+                        CreatedDate = DateTime.UtcNow
+                    };
+                    await _stockRepository.AddAsync(newDealerStock);
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                // Nếu có lỗi, repository layer sẽ rollback transaction
+                throw;
+            }
         }
     }
 }
