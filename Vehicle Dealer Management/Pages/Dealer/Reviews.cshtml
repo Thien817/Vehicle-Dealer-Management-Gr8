@@ -64,7 +64,7 @@ else
             <div style="display: grid; gap: 1rem;">
                 @foreach (var review in Model.Reviews)
                 {
-                    <div style="padding: 1.5rem; background: var(--black); border-radius: var(--radius); border: 1px solid var(--border);">
+                    <div style="padding: 1.5rem; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
@@ -90,7 +90,7 @@ else
                         </div>
                         @if (!string.IsNullOrEmpty(review.Content))
                         {
-                            <div style="padding: 0.75rem; background: var(--surface); border-radius: var(--radius-sm); margin-top: 0.75rem;">
+                            <div style="padding: 0.75rem; background: #FFFFFF; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-top: 0.75rem;">
                                 @review.Content
                             </div>
                         }

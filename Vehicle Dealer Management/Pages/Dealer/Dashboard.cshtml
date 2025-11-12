@@ -152,7 +152,7 @@
             {
                 @foreach (var td in Model.TodayTestDrives)
                 {
-                    <div class="flex justify-between items-center" style="padding: 0.75rem; background: var(--black); border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
+                    <div class="flex justify-between items-center" style="padding: 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
                         <div>
                             <div><strong>@td.CustomerName</strong></div>
                             <div class="text-muted" style="font-size: 0.875rem;">@td.VehicleName - @td.Time</div>
@@ -182,7 +182,7 @@
             {
                 @foreach (var quote in Model.PendingQuotesList)
                 {
-                    <div class="flex justify-between items-center" style="padding: 0.75rem; background: var(--black); border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
+                    <div class="flex justify-between items-center" style="padding: 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
                         <div>
                             <div><strong>#@quote.Id - @quote.CustomerName</strong></div>
                             <div class="text-muted" style="font-size: 0.875rem;">@quote.CreatedAt.ToString("dd/MM/yyyy")</div>
