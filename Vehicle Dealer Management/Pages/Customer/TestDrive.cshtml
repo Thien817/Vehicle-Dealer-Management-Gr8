@@ -53,7 +53,7 @@
                     @await Html.PartialAsync("_StatusBadge", td.Status)
                 </div>
 
-                <div style="background: var(--black); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                <div style="background: var(--surface); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
                     <div class="flex items-center gap-2 mb-2">
                         <i class="bi bi-calendar3" style="color: var(--accent-cyan);"></i>
                         <strong style="font-size: 1.125rem;">@td.ScheduleTime.ToString("dddd, dd/MM/yyyy")</strong>
