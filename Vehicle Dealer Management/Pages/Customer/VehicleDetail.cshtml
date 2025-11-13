@@ -76,7 +76,7 @@
                 <h3 class="card-title">Giá bán</h3>
             </div>
             <div class="card-body">
-                <div style="padding: 2rem; background: var(--black); border-radius: var(--radius-sm); text-align: center;">
+                <div style="padding: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: center;">
                     <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.5rem;">Giá từ</div>
                     
                     @if (Model.Vehicle.OriginalPrice.HasValue && Model.Vehicle.OriginalPrice.Value > Model.Vehicle.Price)
@@ -147,7 +147,7 @@
                     <div class="grid grid-cols-1 gap-2">
                         @foreach (var dealer in Model.Vehicle.Dealers.Take(3))
                         {
-                            <div style="padding: 1rem; background: var(--black); border-radius: var(--radius-sm);">
+                            <div style="padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);">
                                 <div style="font-weight: 600; margin-bottom: 0.25rem;">@dealer.Name</div>
                                 <div class="text-muted" style="font-size: 0.875rem;">@dealer.Address</div>
                                 <div class="text-muted" style="font-size: 0.875rem;"><i class="bi bi-telephone"></i> @dealer.Phone</div>
