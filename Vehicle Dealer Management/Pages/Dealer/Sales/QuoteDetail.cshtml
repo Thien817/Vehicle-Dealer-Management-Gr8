@@ -185,9 +185,9 @@
                 <div class="grid grid-cols-1 gap-2">
                     @if (Model.Quote.Status == "ACCEPTED" && !Model.Quote.IsConverted)
                     {
-                        <form method="post" asp-page-handler="ConvertToOrder" style="width: 100%;">
+                        <form method="post" asp-page-handler="ConvertToOrder" style="width: 100%;" onsubmit="event.preventDefault(); handleConvertToOrder(this);">
                             <input type="hidden" name="id" value="@Model.Quote.Id" />
-                            <button type="submit" class="btn btn-primary" style="width: 100%;" onclick="return confirm('Bạn có chắc chắn muốn chuyển báo giá này thành đơn hàng? Đơn hàng sẽ được tạo với trạng thái OPEN và tất cả thông tin từ báo giá sẽ được sao chép.');">
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">
                                 <i class="bi bi-file-earmark-check"></i> Chuyển thành đơn hàng
                             </button>
                         </form>
@@ -275,5 +275,17 @@
 
 @section Scripts {
     <!-- Scripts for toast notifications -->
+    <script>
+        function handleConvertToOrder(form) {
+            customConfirm(
+                'Bạn có chắc chắn muốn chuyển báo giá này thành đơn hàng? Đơn hàng sẽ được tạo với trạng thái OPEN và tất cả thông tin từ báo giá sẽ được sao chép.',
+                'Xác nhận chuyển đổi'
+            ).then(function(result) {
+                if (result) {
+                    form.submit();
+                }
+            });
+        }
+    </script>
 }
 

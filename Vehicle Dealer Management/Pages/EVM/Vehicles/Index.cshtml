@@ -48,7 +48,7 @@
                                     <a href="/EVM/Vehicles/Edit?id=@vehicle.Id" class="btn btn-secondary btn-sm">
                                         <i class="bi bi-pencil"></i> Sửa
                                     </a>
-                                    <form method="post" asp-page-handler="Delete" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa \'@vehicle.Name @vehicle.Variant\'?\\n\\nLưu ý: Nếu xe đã có trong đơn hàng/báo giá, hệ thống sẽ đổi trạng thái thành DISCONTINUED thay vì xóa.');">
+                                    <form method="post" asp-page-handler="Delete" style="display: inline;" onsubmit="event.preventDefault(); handleDeleteVehicle(this, '@vehicle.Name @vehicle.Variant');">
                                         <input type="hidden" name="vehicleId" value="@vehicle.Id" />
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bi bi-trash"></i> Xóa
@@ -87,6 +87,80 @@
             var toast = document.getElementById('errorToast');
             if (toast) toast.style.display = 'none';
         }, 5000);
+    </script>
+}
+
+@section Scripts {
+    <style>
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: var(--text-heading);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            color: var(--error);
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+    </style>
+    <script>
+        function handleDeleteVehicle(form, vehicleName) {
+            customConfirm(
+                'Bạn có chắc chắn muốn xóa \'' + vehicleName + '\'?\n\nLưu ý: Nếu xe đã có trong đơn hàng/báo giá, hệ thống sẽ đổi trạng thái thành DISCONTINUED thay vì xóa.',
+                'Xác nhận xóa xe'
+            ).then(function(result) {
+                if (result) {
+                    form.submit();
+                }
+            });
+        }
     </script>
 }
 

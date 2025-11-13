@@ -113,12 +113,19 @@
     <input type="hidden" name="dealerId" id="deleteDealerId" />
 </form>
 
-<script>
-    function confirmDelete(dealerId, dealerName) {
-        if (confirm(`Bạn có chắc chắn muốn XÓA HẲN đại lý "${dealerName}"?\n\nHành động này sẽ:\n- Xóa tất cả dữ liệu liên quan (chính sách giá, đơn hàng, lịch lái thử, feedback)\n- Gỡ liên kết với các nhân viên\n- Không thể hoàn tác!`)) {
-            document.getElementById('deleteDealerId').value = dealerId;
-            document.getElementById('deleteForm').submit();
+@section Scripts {
+    <script>
+        function confirmDelete(dealerId, dealerName) {
+            customConfirm(
+                'Bạn có chắc chắn muốn XÓA HẲN đại lý "' + dealerName + '"?\n\nHành động này sẽ:\n- Xóa tất cả dữ liệu liên quan (chính sách giá, đơn hàng, lịch lái thử, feedback)\n- Gỡ liên kết với các nhân viên\n- Không thể hoàn tác!',
+                'Xác nhận xóa đại lý'
+            ).then(function(result) {
+                if (result) {
+                    document.getElementById('deleteDealerId').value = dealerId;
+                    document.getElementById('deleteForm').submit();
+                }
+            });
         }
-    }
-</script>
+    </script>
+}
 

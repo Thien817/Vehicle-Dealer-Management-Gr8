@@ -361,9 +361,9 @@
                                         </div>
                                         @if (isFullyPaid)
                                         {
-                                            <form method="post" asp-page-handler="CompleteDelivery" style="margin: 0;">
+                                            <form method="post" asp-page-handler="CompleteDelivery" style="margin: 0;" onsubmit="event.preventDefault(); handleCompleteDelivery(this, true);">
                                                 <input type="hidden" name="id" value="@Model.Order.Id" />
-                                                <button type="submit" class="btn btn-success" onclick="return confirm('Xác nhận hoàn thành giao xe và đóng đơn hàng?')">
+                                                <button type="submit" class="btn btn-success">
                                                     <i class="bi bi-check-circle"></i> Hoàn thành giao xe
                                                 </button>
                                             </form>
@@ -375,9 +375,9 @@
                                                 <strong>Lưu ý:</strong> Đơn hàng còn thiếu <strong>@remainingAmountForDelivery.ToString("N0") VND</strong>. 
                                                 Bạn chỉ có thể "Hoàn thành giao xe" (không đóng đơn). Đơn hàng sẽ chỉ đóng khi khách hàng thanh toán đủ 100%.
                                             </div>
-                                            <form method="post" asp-page-handler="CompleteDelivery" style="margin: 0;">
+                                            <form method="post" asp-page-handler="CompleteDelivery" style="margin: 0;" onsubmit="event.preventDefault(); handleCompleteDelivery(this, false);">
                                                 <input type="hidden" name="id" value="@Model.Order.Id" />
-                                                <button type="submit" class="btn btn-warning" onclick="return confirm('Xác nhận hoàn thành giao xe?\n\nLưu ý: Đơn hàng sẽ KHÔNG đóng vì chưa thanh toán đủ 100%. Khách hàng cần thanh toán đủ để đóng đơn.')">
+                                                <button type="submit" class="btn btn-warning">
                                                     <i class="bi bi-truck"></i> Hoàn thành giao xe (chưa đóng đơn)
                                                 </button>
                                             </form>
@@ -612,6 +612,18 @@
                         amountInput.value = remainingAmount;
                     }
                 }, 100);
+            });
+        }
+
+        function handleCompleteDelivery(form, isFullyPaid) {
+            var message = isFullyPaid 
+                ? 'Xác nhận hoàn thành giao xe và đóng đơn hàng?'
+                : 'Xác nhận hoàn thành giao xe?\n\nLưu ý: Đơn hàng sẽ KHÔNG đóng vì chưa thanh toán đủ 100%. Khách hàng cần thanh toán đủ để đóng đơn.';
+            
+            customConfirm(message, 'Xác nhận hoàn thành giao xe').then(function(result) {
+                if (result) {
+                    form.submit();
+                }
             });
         }
     </script>
