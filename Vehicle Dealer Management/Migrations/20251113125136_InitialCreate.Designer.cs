@@ -12,8 +12,8 @@ using Vehicle_Dealer_Management.DAL.Data;
 namespace Vehicle_Dealer_Management.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251112082736_AddSalesContracts")]
-    partial class AddSalesContracts
+    [Migration("20251113125136_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

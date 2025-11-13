@@ -35,8 +35,12 @@ namespace Vehicle_Dealer_Management.Pages.DealerManager.Reports
                 return RedirectToPage("/Auth/Login");
             }
 
-            FromDate = fromDate ?? DateTime.Today.AddMonths(-1);
-            ToDate = toDate ?? DateTime.Today;
+            var rangeStart = (fromDate ?? DateTime.Today.AddMonths(-1)).Date;
+            var rangeEndInclusive = (toDate ?? DateTime.Today).Date;
+            var rangeEndExclusive = rangeEndInclusive.AddDays(1);
+
+            FromDate = rangeStart;
+            ToDate = rangeEndInclusive;
             StaffId = staffId;
 
             var dealerIdInt = int.Parse(dealerId);
@@ -50,7 +54,8 @@ namespace Vehicle_Dealer_Management.Pages.DealerManager.Reports
                 .Select(u => new StaffViewModel
                 {
                     Id = u.Id,
-                    Name = u.FullName
+                    Name = u.FullName,
+                    Email = u.Email
                 })
                 .ToListAsync();
 
@@ -58,8 +63,8 @@ namespace Vehicle_Dealer_Management.Pages.DealerManager.Reports
             var salesQuery = _context.SalesDocuments
                 .Where(s => s.DealerId == dealerIdInt &&
                            s.Type == "ORDER" &&
-                           s.CreatedAt >= FromDate &&
-                           s.CreatedAt <= ToDate);
+                           s.CreatedAt >= rangeStart &&
+                           s.CreatedAt < rangeEndExclusive);
 
             if (staffId.HasValue)
             {
@@ -80,25 +85,64 @@ namespace Vehicle_Dealer_Management.Pages.DealerManager.Reports
                     Name = g.Key.StaffName,
                     Email = g.Key.StaffEmail,
                     OrderCount = g.Count(),
-                    VehiclesSold = (int)g.Sum(s => (decimal?)(s.Lines?.Sum(l => (decimal?)l.Qty)) ?? 0),
-                    Sales = g.Sum(s => (s.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0))
+                    VehiclesSold = (int)g.Sum(s => s.Lines?.Sum(l => l.Qty) ?? 0m),
+                    Sales = g.Sum(s => s.Lines?.Sum(l => l.UnitPrice * l.Qty - l.DiscountValue) ?? 0m)
                 })
-                .OrderByDescending(s => s.Sales)
                 .ToList();
 
-            // Assign ranks
-            int rank = 1;
-            foreach (var staff in staffSales)
+            var staffSalesLookup = staffSales.ToDictionary(s => s.StaffId);
+
+            var relevantStaff = StaffId.HasValue
+                ? AllStaff.Where(s => s.Id == StaffId.Value).ToList()
+                : AllStaff.ToList();
+
+            var reports = new List<StaffReportViewModel>();
+
+            foreach (var staff in relevantStaff)
             {
-                staff.Rank = rank++;
-                staff.AvgOrderValue = staff.OrderCount > 0 ? staff.Sales / staff.OrderCount : 0;
+                if (staffSalesLookup.TryGetValue(staff.Id, out var summary))
+                {
+                    reports.Add(summary);
+                }
+                else
+                {
+                    reports.Add(new StaffReportViewModel
+                    {
+                        StaffId = staff.Id,
+                        Name = staff.Name,
+                        Email = staff.Email,
+                        OrderCount = 0,
+                        VehiclesSold = 0,
+                        Sales = 0m,
+                        AvgOrderValue = 0m
+                    });
+                }
             }
 
-            StaffReports = staffSales;
+            var missingStaffReports = staffSales
+                .Where(s => relevantStaff.All(st => st.Id != s.StaffId))
+                .ToList();
+            reports.AddRange(missingStaffReports);
 
-            TotalSales = staffSales.Sum(s => s.Sales);
-            TotalOrders = staffSales.Sum(s => s.OrderCount);
-            TotalVehiclesSold = staffSales.Sum(s => s.VehiclesSold);
+            reports = reports
+                .OrderByDescending(s => s.Sales)
+                .ThenBy(s => s.Name)
+                .ToList();
+
+            int rank = 1;
+            foreach (var staff in reports)
+            {
+                staff.Rank = rank++;
+                staff.AvgOrderValue = staff.OrderCount > 0
+                    ? Math.Round(staff.Sales / staff.OrderCount, 2, MidpointRounding.AwayFromZero)
+                    : 0m;
+            }
+
+            StaffReports = reports;
+
+            TotalSales = reports.Sum(s => s.Sales);
+            TotalOrders = reports.Sum(s => s.OrderCount);
+            TotalVehiclesSold = reports.Sum(s => s.VehiclesSold);
 
             return Page();
         }
@@ -107,6 +151,7 @@ namespace Vehicle_Dealer_Management.Pages.DealerManager.Reports
         {
             public int Id { get; set; }
             public string Name { get; set; } = "";
+            public string Email { get; set; } = "";
         }
 
         public class StaffReportViewModel
