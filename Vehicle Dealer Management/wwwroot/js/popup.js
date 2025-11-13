@@ -33,9 +33,9 @@
 
         const {
             message = '',
-            title = 'localhost:7042 says',
+            title = 'Thông báo',
             confirmText = 'OK',
-            cancelText = 'Cancel',
+            cancelText = 'Không',
             showCancel = false,
             onConfirm = null,
             onCancel = null,
@@ -170,7 +170,7 @@
                 message: message,
                 title: title,
                 confirmText: 'OK',
-                cancelText: 'Cancel',
+                cancelText: 'Không',
                 showCancel: true,
                 type: 'warning',
                 onConfirm: () => resolve(true),
