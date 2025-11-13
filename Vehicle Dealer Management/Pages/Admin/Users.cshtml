@@ -293,12 +293,12 @@
                     toggleDealerSelection('edit');
                     document.getElementById('editModal').style.display = 'flex';
                 } else {
-                    alert('Không thể tải dữ liệu người dùng: ' + data.message);
+                    showError('Không thể tải dữ liệu người dùng: ' + data.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Đã xảy ra lỗi khi tải dữ liệu.');
+                showError('Đã xảy ra lỗi khi tải dữ liệu.');
             });
     }
 
@@ -328,10 +328,15 @@
     }
 
     function confirmDelete(userId, userName) {
-        if (confirm(`Bạn có chắc chắn muốn xóa người dùng "${userName}"?`)) {
-            document.getElementById('deleteUserId').value = userId;
-            document.getElementById('deleteForm').submit();
-        }
+        customConfirm(
+            'Bạn có chắc chắn muốn xóa người dùng "' + userName + '"?',
+            'Xác nhận xóa người dùng'
+        ).then(function(result) {
+            if (result) {
+                document.getElementById('deleteUserId').value = userId;
+                document.getElementById('deleteForm').submit();
+            }
+        });
     }
 
     // Close modals when clicking outside
