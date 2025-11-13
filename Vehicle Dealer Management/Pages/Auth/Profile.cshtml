@@ -25,7 +25,7 @@
 
                 <div class="form-group">
                     <label class="form-label">Email</label>
-                    <input type="email" class="form-control" value="@Model.User.Email" readonly style="background: var(--black); cursor: not-allowed;" />
+                    <input type="email" class="form-control" value="@Model.User.Email" readonly style="background: #f8f9fa; color: #6c757d; cursor: not-allowed;" />
                     <small class="form-text">Email không thể thay đổi</small>
                 </div>
 
@@ -36,7 +36,7 @@
 
                 <div class="form-group">
                     <label class="form-label">Vai trò</label>
-                    <input type="text" class="form-control" value="@Model.User.Role?.Name" readonly style="background: var(--black); cursor: not-allowed;" />
+                    <input type="text" class="form-control" value="@Model.User.Role?.Name" readonly style="background: #f8f9fa; color: #6c757d; cursor: not-allowed;" />
                 </div>
 
                 @if (Model.User.Dealer != null)
