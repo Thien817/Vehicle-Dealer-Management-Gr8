@@ -56,7 +56,7 @@
                 </div>
                 <div class="custom-popup-footer" style="padding: 1rem 1.5rem; background: #F8F9FA; border-top: 1px solid #DEE2E6; display: flex; gap: 0.75rem; justify-content: flex-end;">
                     ${showCancel ? `<button class="custom-popup-btn custom-popup-btn-cancel" style="padding: 0.625rem 1.5rem; border: 2px solid #6C757D; border-radius: 8px; font-size: 0.9375rem; font-weight: 600; cursor: pointer; min-width: 80px; background: #6C757D; color: #FFFFFF;">${cancelText}</button>` : ''}
-                    <button class="custom-popup-btn custom-popup-btn-confirm" style="padding: 0.625rem 1.5rem; border: 2px solid #FFA500; border-radius: 8px; font-size: 0.9375rem; font-weight: 600; cursor: pointer; min-width: 80px; background: #FFA500; color: #000000;">${confirmText}</button>
+                    <button class="custom-popup-btn custom-popup-btn-confirm" style="padding: 0.625rem 1.5rem; border: 2px solid #198754; border-radius: 8px; font-size: 0.9375rem; font-weight: 600; cursor: pointer; min-width: 80px; background: #198754; color: #FFFFFF;">${confirmText}</button>
                 </div>
             </div>
         `;
@@ -67,6 +67,33 @@
         // Get buttons
         const confirmBtn = popup.querySelector('.custom-popup-btn-confirm');
         const cancelBtn = popup.querySelector('.custom-popup-btn-cancel');
+
+        // Add hover effects
+        confirmBtn.addEventListener('mouseenter', function() {
+            this.style.background = '#157347';
+            this.style.borderColor = '#157347';
+            this.style.transform = 'translateY(-1px)';
+            this.style.boxShadow = '0 4px 8px rgba(25, 135, 84, 0.3)';
+        });
+        confirmBtn.addEventListener('mouseleave', function() {
+            this.style.background = '#198754';
+            this.style.borderColor = '#198754';
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = 'none';
+        });
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('mouseenter', function() {
+                this.style.background = '#5A6268';
+                this.style.borderColor = '#5A6268';
+                this.style.transform = 'translateY(-1px)';
+            });
+            cancelBtn.addEventListener('mouseleave', function() {
+                this.style.background = '#6C757D';
+                this.style.borderColor = '#6C757D';
+                this.style.transform = 'translateY(0)';
+            });
+        }
 
         // Handle confirm
         confirmBtn.addEventListener('click', function() {
