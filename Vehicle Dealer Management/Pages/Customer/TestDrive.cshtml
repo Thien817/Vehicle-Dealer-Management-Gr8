@@ -98,7 +98,7 @@
                                 onclick="openEditModal(this)">
                             <i class="bi bi-pencil"></i> Sửa
                         </button>
-                        <form method="post" asp-page-handler="Cancel" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lịch lái thử này?');">
+                        <form method="post" asp-page-handler="Cancel" style="display: inline;" onsubmit="event.preventDefault(); handleCancelTestDrive(this);">
                             <input type="hidden" name="testDriveId" value="@td.Id" />
                             <button type="submit" class="btn btn-danger btn-sm">
                                 <i class="bi bi-x-circle"></i> Hủy lịch
@@ -275,6 +275,26 @@ else
         document.getElementById('editNote').value = note;
 
         document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function handleCancelTestDrive(form) {
+        // Check if customConfirm is available
+        if (typeof customConfirm !== 'function') {
+            console.error('customConfirm is not loaded');
+            if (confirm('Bạn có chắc chắn muốn hủy lịch lái thử này?')) {
+                form.submit();
+            }
+            return;
+        }
+
+        customConfirm(
+            'Bạn có chắc chắn muốn hủy lịch lái thử này?',
+            'Xác nhận hủy lịch'
+        ).then(function(result) {
+            if (result) {
+                form.submit();
+            }
+        });
     }
 
     // Close modal when clicking outside
