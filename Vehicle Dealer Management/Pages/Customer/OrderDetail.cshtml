@@ -140,6 +140,7 @@
                 // Nếu customer đã xác nhận nhận xe, coi như đã nhận (màu xanh lá)
                 // Nếu delivery status là DELIVERED, hiển thị đã giao
                 // Nếu đang IN_TRANSIT và chưa xác nhận, hiển thị đang giao
+                // Nếu đã lên lịch giao xe, hiển thị đã lên lịch
                 var deliveryColor = isDelivered ? "var(--success)" : isCustomerConfirmed ? "var(--success)" : isInTransit ? "var(--warning)" : "var(--info)";
                 
                 <div style="position: relative; margin-bottom: 2rem;">
@@ -423,9 +424,9 @@
                                 <p style="margin-bottom: 0.75rem; color: var(--text-muted);">
                                     Vui lòng xác nhận bạn đã nhận được xe để hoàn tất quá trình giao hàng.
                                 </p>
-                                <form method="post" asp-page-handler="ConfirmReceipt" style="margin: 0;">
+                                <form method="post" asp-page-handler="ConfirmReceipt" style="margin: 0;" onsubmit="event.preventDefault(); handleConfirmReceipt(this);">
                                     <input type="hidden" name="id" value="@Model.Order.Id" />
-                                    <button type="submit" class="btn btn-success" onclick="return confirm('Bạn có chắc chắn đã nhận được xe?')" style="width: 100%;">
+                                    <button type="submit" class="btn btn-success" style="width: 100%;">
                                         <i class="bi bi-check-circle"></i> Xác nhận đã nhận xe
                                     </button>
                                 </form>
@@ -491,7 +492,7 @@
                         <a href="/Customer/Review/Edit?orderId=@Model.Order.Id" class="btn btn-secondary btn-sm">
                             <i class="bi bi-pencil"></i> Chỉnh sửa đánh giá
                         </a>
-                        <form method="post" asp-page-handler="DeleteReview" style="margin: 0;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đánh giá này?');">
+                        <form method="post" asp-page-handler="DeleteReview" style="margin: 0;" onsubmit="event.preventDefault(); handleDeleteReview(this);">
                             <input type="hidden" name="orderId" value="@Model.Order.Id" />
                             <button type="submit" class="btn btn-danger btn-sm">
                                 <i class="bi bi-trash"></i> Xóa đánh giá
@@ -518,5 +519,31 @@
             }
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        function handleConfirmReceipt(form) {
+            customConfirm(
+                'Bạn có chắc chắn đã nhận được xe?',
+                'Xác nhận nhận xe'
+            ).then(function(result) {
+                if (result) {
+                    form.submit();
+                }
+            });
+        }
+
+        function handleDeleteReview(form) {
+            customConfirm(
+                'Bạn có chắc chắn muốn xóa đánh giá này?',
+                'Xác nhận xóa đánh giá'
+            ).then(function(result) {
+                if (result) {
+                    form.submit();
+                }
+            });
+        }
+    </script>
 }
 
