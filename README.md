@@ -42,14 +42,4 @@ Sau khi seed data, dùng các tài khoản sau để đăng nhập:
 | `evmstaff@test.com` | `123456` | EVM_STAFF | NV Hãng - Quản lý xe, giá, tồn kho, đại lý |
 | `admin@test.com` | `123456` | EVM_ADMIN | Admin - Dashboard, báo cáo phân tích |
 
-## 📊 Seed Data
 
-- ✅ 5 Roles + 5 Users
-- ✅ 2 Dealers (Hà Nội, TP.HCM)
-- ✅ 3 Vehicles (Model S, Model 3, Model X)
-- ✅ Price Policies, Stocks, Customer Profiles, Promotions
-
-## 📖 Tham khảo
-
-- **📖 Tài liệu chính:** Xem **[ROADMAP.md](ROADMAP.md)** - Tổng hợp đầy đủ Requirements, Database, Roadmap, Progress, và UI Guidelines
-- **Chi tiết:** Xem `requirements.md` và `database.md` cho thông tin chi tiết
