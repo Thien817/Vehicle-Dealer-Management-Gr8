@@ -12,9 +12,14 @@
             <h1 class="content-title">Lịch lái thử của tôi</h1>
             <p class="content-subtitle">Đặt lịch và theo dõi lịch hẹn lái thử</p>
         </div>
-        <button class="btn btn-primary" onclick="document.getElementById('bookModal').style.display='flex'">
-            <i class="bi bi-calendar-plus"></i> Đặt lịch mới
-        </button>
+        <div class="flex gap-2">
+            <button class="btn btn-primary" onclick="document.getElementById('slotBrowserModal').style.display='flex'">
+                <i class="bi bi-calendar-week"></i> Xem Slot có sẵn
+            </button>
+            <button class="btn btn-secondary" onclick="document.getElementById('bookModal').style.display='flex'">
+                <i class="bi bi-calendar-plus"></i> Đặt lịch trực tiếp
+            </button>
+        </div>
     </div>
 </div>
 
@@ -47,10 +52,23 @@
                         <i class="bi bi-calendar3" style="color: var(--accent-cyan);"></i>
                         <strong style="font-size: 1.125rem;">@td.ScheduleTime.ToString("dddd, dd/MM/yyyy")</strong>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <i class="bi bi-clock" style="color: var(--accent-cyan);"></i>
-                        <strong style="font-size: 1.125rem;">@td.ScheduleTime.ToString("HH:mm")</strong>
-                    </div>
+                    @if (td.IsSlotBooking && !string.IsNullOrEmpty(td.SlotTime))
+                    {
+                        <div class="flex items-center gap-2">
+                            <i class="bi bi-clock" style="color: var(--accent-cyan);"></i>
+                            <strong style="font-size: 1.125rem;">Slot: @td.SlotTime</strong>
+                            <span class="badge badge-info" style="margin-left: 0.5rem;">
+                                <i class="bi bi-calendar-check"></i> Đặt qua Slot
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="flex items-center gap-2">
+                            <i class="bi bi-clock" style="color: var(--accent-cyan);"></i>
+                            <strong style="font-size: 1.125rem;">@td.ScheduleTime.ToString("HH:mm")</strong>
+                        </div>
+                    }
                 </div>
 
                 @if (!string.IsNullOrEmpty(td.Note))
@@ -75,7 +93,7 @@
                         </span>
                     }
                     
-                    @if (!isPast && td.Status != "DONE" && td.Status != "CANCELLED")
+                    @if (!isPast && td.Status != "DONE" && td.Status != "CANCELLED" && !td.IsSlotBooking)
                     {
                         <button class="btn btn-primary btn-sm" 
                                 data-testdrive-id="@td.Id"
@@ -87,6 +105,10 @@
                                 onclick="openEditModal(this)">
                             <i class="bi bi-pencil"></i> Sửa
                         </button>
+                    }
+                    
+                    @if (!isPast && td.Status != "DONE" && td.Status != "CANCELLED")
+                    {
                         <form method="post" asp-page-handler="Cancel" id="cancelForm@(td.Id)" style="display: inline;">
                             <input type="hidden" name="testDriveId" value="@td.Id" />
                             <button type="button" class="btn btn-danger btn-sm" onclick="showConfirmModal('Hủy lịch lái thử', 'Bạn có chắc chắn muốn hủy lịch lái thử này? Hành động này không thể hoàn tác.', function() { document.getElementById('cancelForm@(td.Id)').submit(); }, 'Xác nhận hủy', 'Hủy', 'danger');">
@@ -112,11 +134,156 @@ else
     </div>
 }
 
-<!-- Booking Modal -->
+<!-- Slot Browser Modal -->
+<div id="slotBrowserModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 800px; width: 95%; max-height: 90vh; overflow-y: auto;">
+        <div class="card-header">
+            <div class="flex justify-between items-center">
+                <h3 class="card-title mb-0">Xem Slot lái thử có sẵn</h3>
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('slotBrowserModal').style.display='none'">
+                    <i class="bi bi-x"></i> Đóng
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Date and Dealer Selector -->
+            <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--surface); border-radius: var(--radius-sm);">
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="form-group mb-0">
+                        <label class="form-label">Chọn ngày</label>
+                        <input type="date" 
+                               id="slotDate" 
+                               class="form-control" 
+                               value="@Model.SelectedDate.ToString("yyyy-MM-dd")"
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="form-label">Chọn đại lý</label>
+                        <select id="slotDealer" class="form-control">
+                            <option value="">-- Chọn đại lý --</option>
+                            @foreach (var d in Model.AllDealers)
+                            {
+                                <option value="@d.Id" selected="@(d.Id == Model.SelectedDealerId)">
+                                    @d.Name - @d.Address
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm" style="margin-top: 1rem;" onclick="loadSlots()">
+                    <i class="bi bi-search"></i> Tìm Slot
+                </button>
+            </div>
+
+            <!-- Available Slots Display -->
+            <div id="slotsContainer">
+                @if (Model.AvailableSlots.Any())
+                {
+                    <div style="margin-bottom: 1rem;">
+                        <h4>Slot có sẵn (@Model.AvailableSlots.Count slot)</h4>
+                    </div>
+                    
+                    @foreach (var slot in Model.AvailableSlots)
+                    {
+                        <div class="card mb-3" style="border: 2px solid var(--success);">
+                            <div class="card-body">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h4 style="margin-bottom: 0.5rem;">
+                                            <i class="bi bi-clock"></i> @slot.StartTime - @slot.EndTime
+                                        </h4>
+                                        <p class="text-muted" style="font-size: 0.875rem; margin: 0;">
+                                            Còn <strong style="color: var(--success);">@slot.AvailableSlots/@slot.MaxSlots</strong> chỗ trống
+                                        </p>
+                                    </div>
+                                    <span class="badge badge-success">Có sẵn</span>
+                                </div>
+
+                                <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--surface); border-radius: var(--radius-sm);">
+                                    <div style="margin-bottom: 0.5rem;"><strong>Xe có sẵn:</strong></div>
+                                    @foreach (var vehicle in slot.AvailableVehicles)
+                                    {
+                                        <span class="badge badge-default" style="margin-right: 0.5rem; margin-bottom: 0.5rem;">
+                                            <i class="bi bi-car-front"></i> @vehicle.Name
+                                        </span>
+                                    }
+                                </div>
+
+                                <button class="btn btn-primary btn-sm" onclick="openBookSlotModal(@slot.Id, '@slot.StartTime', '@slot.EndTime', @System.Text.Json.JsonSerializer.Serialize(slot.AvailableVehicles))">
+                                    <i class="bi bi-calendar-check"></i> Đặt lịch Slot này
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (Model.SelectedDealerId.HasValue)
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📅</div>
+                        <div class="empty-state-title">Không có slot nào</div>
+                        <div class="empty-state-text">Vui lòng chọn ngày và đại lý khác</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-text">Chọn ngày và đại lý để xem slot có sẵn</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Book Slot Modal -->
+<div id="bookSlotModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2001; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 500px; width: 90%;">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Đặt lịch Slot lái thử</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-page-handler="BookSlot">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="slotId" id="bookSlotId" />
+                
+                <div style="margin-bottom: 1rem; padding: 1rem; background: var(--info-bg); border-radius: var(--radius-sm);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="bi bi-clock" style="color: var(--info); font-size: 1.5rem;"></i>
+                        <strong id="bookSlotTimeDisplay" style="font-size: 1.125rem;"></strong>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Chọn xe muốn lái thử</label>
+                    <select class="form-control" name="vehicleId" id="bookSlotVehicle" required>
+                        <option value="">-- Chọn xe --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Ghi chú (tùy chọn)</label>
+                    <textarea class="form-control" name="note" rows="2" placeholder="Yêu cầu đặc biệt..."></textarea>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check"></i> Đặt lịch
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('bookSlotModal').style.display='none'">
+                        Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Booking Modal (Direct) - Keep existing code -->
 <div id="bookModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;">
     <div class="card" style="max-width: 500px; width: 90%;">
         <div class="card-header">
-            <h3 class="card-title mb-0">Đặt lịch lái thử</h3>
+            <h3 class="card-title mb-0">Đặt lịch lái thử trực tiếp</h3>
         </div>
         <div class="card-body">
             <form method="post">
@@ -174,7 +341,7 @@ else
     </div>
 </div>
 
-<!-- Edit Modal -->
+<!-- Edit Modal - Keep existing code -->
 <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;">
     <div class="card" style="max-width: 500px; width: 90%;">
         <div class="card-header">
@@ -262,15 +429,53 @@ else
         document.getElementById('editModal').style.display = 'flex';
     }
 
+    function loadSlots() {
+        var date = document.getElementById('slotDate').value;
+        var dealerId = document.getElementById('slotDealer').value;
+        
+        if (!date || !dealerId) {
+            alert('Vui lòng chọn ngày và đại lý');
+            return;
+        }
+        
+        window.location.href = '?date=' + date + '&dealerId=' + dealerId;
+    }
+
+    function openBookSlotModal(slotId, startTime, endTime, vehicles) {
+        document.getElementById('bookSlotId').value = slotId;
+        document.getElementById('bookSlotTimeDisplay').textContent = startTime + ' - ' + endTime;
+        
+        var vehicleSelect = document.getElementById('bookSlotVehicle');
+        vehicleSelect.innerHTML = '<option value="">-- Chọn xe --</option>';
+        
+        vehicles.forEach(function(vehicle) {
+            var option = document.createElement('option');
+            option.value = vehicle.id;
+            option.textContent = vehicle.name;
+            vehicleSelect.appendChild(option);
+        });
+        
+        document.getElementById('bookSlotModal').style.display = 'flex';
+    }
+
     // Close modal when clicking outside
     window.onclick = function(event) {
         var bookModal = document.getElementById('bookModal');
         var editModal = document.getElementById('editModal');
+        var slotBrowserModal = document.getElementById('slotBrowserModal');
+        var bookSlotModal = document.getElementById('bookSlotModal');
+        
         if (event.target == bookModal) {
             bookModal.style.display = 'none';
         }
         if (event.target == editModal) {
             editModal.style.display = 'none';
+        }
+        if (event.target == slotBrowserModal) {
+            slotBrowserModal.style.display = 'none';
+        }
+        if (event.target == bookSlotModal) {
+            bookSlotModal.style.display = 'none';
         }
     }
 

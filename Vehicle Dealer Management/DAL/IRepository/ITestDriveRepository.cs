@@ -8,6 +8,13 @@ namespace Vehicle_Dealer_Management.DAL.IRepository
         Task<IEnumerable<TestDrive>> GetTestDrivesByDealerIdAsync(int dealerId);
         Task<IEnumerable<TestDrive>> GetTestDrivesByDealerAndDateAsync(int dealerId, DateTime date);
         Task<IEnumerable<TestDrive>> GetTestDrivesByStatusAsync(string status, int? dealerId = null);
+        
+        // NEW: Slot Management
+        Task<IEnumerable<TestDrive>> GetSlotsByDealerAndDateAsync(int dealerId, DateTime date);
+        Task<IEnumerable<TestDrive>> GetAvailableSlotsByDealerAndDateAsync(int dealerId, DateTime date);
+        Task<TestDrive?> GetSlotByIdAsync(int slotId);
+        Task<int> GetSlotBookingCountAsync(int slotId);
+        Task<IEnumerable<TestDrive>> GetBookingsBySlotIdAsync(int slotId);
     }
 }
 

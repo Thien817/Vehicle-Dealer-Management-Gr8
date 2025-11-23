@@ -116,10 +116,12 @@ namespace Vehicle_Dealer_Management.Pages.Dealer
                 Id = t.Id,
                 CustomerName = t.Customer?.FullName ?? "N/A",
                 CustomerPhone = t.Customer?.Phone ?? "N/A",
-                VehicleName = $"{t.Vehicle?.ModelName} {t.Vehicle?.VariantName}",
+                VehicleName = t.Vehicle != null ? $"{t.Vehicle.ModelName} {t.Vehicle.VariantName}" : "N/A",
                 ScheduleTime = t.ScheduleTime,
                 Status = t.Status,
-                Note = t.Note ?? ""
+                Note = t.Note ?? "",
+                IsSlotBooking = t.ParentSlotId.HasValue,
+                SlotTime = t.ParentSlot != null ? $"{t.ParentSlot.SlotStartTime} - {t.ParentSlot.SlotEndTime}" : null
             }).ToList();
 
             return Page();
@@ -243,6 +245,8 @@ namespace Vehicle_Dealer_Management.Pages.Dealer
             public DateTime ScheduleTime { get; set; }
             public string Status { get; set; } = "";
             public string Note { get; set; } = "";
+            public bool IsSlotBooking { get; set; }
+            public string? SlotTime { get; set; }
         }
     }
 }

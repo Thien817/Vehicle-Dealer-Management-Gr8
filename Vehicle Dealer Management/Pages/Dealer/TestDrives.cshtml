@@ -12,9 +12,14 @@
             <h1 class="content-title">Quản lý lịch lái thử</h1>
             <p class="content-subtitle">Xem và xác nhận lịch hẹn lái thử xe</p>
         </div>
-        <button class="btn btn-primary" onclick="document.getElementById('createModal').style.display='flex'">
-            <i class="bi bi-calendar-plus"></i> Đặt lịch mới
-        </button>
+        <div class="flex gap-2">
+            <a href="/Dealer/TestDriveSlots" class="btn btn-primary">
+                <i class="bi bi-calendar-week"></i> Quản lý Slot
+            </a>
+            <button class="btn btn-secondary" onclick="document.getElementById('createModal').style.display='flex'">
+                <i class="bi bi-calendar-plus"></i> Đặt lịch trực tiếp
+            </button>
+        </div>
     </div>
 </div>
 
@@ -90,9 +95,26 @@
                                 <td>@td.VehicleName</td>
                                 <td>
                                     <div><strong>@td.ScheduleTime.ToString("dd/MM/yyyy")</strong></div>
-                                    <div style="color: var(--accent-cyan); font-size: 0.875rem;">@td.ScheduleTime.ToString("HH:mm")</div>
+                                    @if (td.IsSlotBooking && !string.IsNullOrEmpty(td.SlotTime))
+                                    {
+                                        <div style="color: var(--accent-cyan); font-size: 0.875rem;">
+                                            <i class="bi bi-calendar-check"></i> Slot: @td.SlotTime
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div style="color: var(--accent-cyan); font-size: 0.875rem;">@td.ScheduleTime.ToString("HH:mm")</div>
+                                    }
                                 </td>
-                                <td>@await Html.PartialAsync("_StatusBadge", td.Status)</td>
+                                <td>
+                                    <div>@await Html.PartialAsync("_StatusBadge", td.Status)</div>
+                                    @if (td.IsSlotBooking)
+                                    {
+                                        <span class="badge badge-info" style="margin-top: 0.25rem; font-size: 0.625rem;">
+                                            SLOT
+                                        </span>
+                                    }
+                                </td>
                                 <td class="text-muted" style="font-size: 0.875rem;">@td.Note</td>
                                 <td>
                                     @if (td.Status == "REQUESTED")
@@ -135,7 +157,7 @@
 <div id="createModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;">
     <div class="card" style="max-width: 500px; width: 90%;">
         <div class="card-header">
-            <h3 class="card-title mb-0">Đặt lịch lái thử mới</h3>
+            <h3 class="card-title mb-0">Đặt lịch lái thử trực tiếp</h3>
         </div>
         <div class="card-body">
             @await Html.PartialAsync("_InlineAlert", "Error")

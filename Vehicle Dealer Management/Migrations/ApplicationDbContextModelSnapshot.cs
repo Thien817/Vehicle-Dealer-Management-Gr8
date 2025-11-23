@@ -868,21 +868,42 @@ namespace Vehicle_Dealer_Management.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AvailableVehicleIds")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("CustomerId")
+                    b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
                     b.Property<int>("DealerId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsSlot")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("MaxSlots")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int?>("ParentSlotId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("ScheduleTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("SlotEndTime")
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("SlotStartTime")
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -892,10 +913,12 @@ namespace Vehicle_Dealer_Management.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("VehicleId")
+                    b.Property<int?>("VehicleId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentSlotId");
 
                     b.HasIndex("VehicleId");
 
@@ -1277,9 +1300,7 @@ namespace Vehicle_Dealer_Management.Migrations
                 {
                     b.HasOne("Vehicle_Dealer_Management.DAL.Models.CustomerProfile", "Customer")
                         .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CustomerId");
 
                     b.HasOne("Vehicle_Dealer_Management.DAL.Models.Dealer", "Dealer")
                         .WithMany()
@@ -1287,15 +1308,19 @@ namespace Vehicle_Dealer_Management.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Vehicle_Dealer_Management.DAL.Models.TestDrive", "ParentSlot")
+                        .WithMany()
+                        .HasForeignKey("ParentSlotId");
+
                     b.HasOne("Vehicle_Dealer_Management.DAL.Models.Vehicle", "Vehicle")
                         .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("VehicleId");
 
                     b.Navigation("Customer");
 
                     b.Navigation("Dealer");
+
+                    b.Navigation("ParentSlot");
 
                     b.Navigation("Vehicle");
                 });

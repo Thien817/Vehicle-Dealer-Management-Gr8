@@ -13,6 +13,15 @@ namespace Vehicle_Dealer_Management.BLL.IService
         Task UpdateTestDriveAsync(TestDrive testDrive);
         Task UpdateTestDriveStatusAsync(int id, string status);
         Task<bool> TestDriveExistsAsync(int id);
+        
+        // NEW: Slot Management
+        Task<IEnumerable<TestDrive>> GetSlotsByDealerAndDateAsync(int dealerId, DateTime date);
+        Task<IEnumerable<TestDrive>> GetAvailableSlotsByDealerAndDateAsync(int dealerId, DateTime date);
+        Task<TestDrive?> GetSlotByIdAsync(int slotId);
+        Task<TestDrive> CreateSlotAsync(TestDrive slot);
+        Task DeleteSlotAsync(int slotId);
+        Task<bool> CanBookSlotAsync(int slotId);
+        Task<TestDrive> BookSlotAsync(int slotId, int customerId, int vehicleId, string? note = null);
     }
 }
 

@@ -29,8 +29,13 @@ namespace Vehicle_Dealer_Management.Pages.Customer
         public List<TestDriveViewModel> TestDrives { get; set; } = new();
         public List<DealerSimple> AllDealers { get; set; } = new();
         public List<VehicleSimple> AllVehicles { get; set; } = new();
+        
+        // NEW: Slot browsing
+        public DateTime SelectedDate { get; set; }
+        public int? SelectedDealerId { get; set; }
+        public List<SlotViewModel> AvailableSlots { get; set; } = new();
 
-        public async Task<IActionResult> OnGetAsync()
+        public async Task<IActionResult> OnGetAsync(string? date, int? dealerId)
         {
             var userId = HttpContext.Session.GetString("UserId");
             var userRole = HttpContext.Session.GetString("UserRole");
@@ -48,7 +53,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 return RedirectToPage("/Auth/Login");
             }
 
-            // Get all dealers and vehicles for booking form (always reload)
+            // Get all dealers and vehicles for booking form
             var activeDealers = await _dealerService.GetActiveDealersAsync();
             AllDealers = activeDealers.Select(d => new DealerSimple
             {
@@ -67,6 +72,13 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             var customerProfile = await _context.CustomerProfiles
                 .FirstOrDefaultAsync(c => c.UserId == user.Id);
 
+            // Create customer profile if not exists
+            if (customerProfile == null)
+            {
+                customerProfile = await CreateOrGetCustomerProfileAsync(user);
+            }
+
+            // Load my bookings
             if (customerProfile != null)
             {
                 var testDrives = await _testDriveService.GetTestDrivesByCustomerIdAsync(customerProfile.Id);
@@ -74,20 +86,99 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 TestDrives = testDrives.Select(t => new TestDriveViewModel
                 {
                     Id = t.Id,
-                    VehicleId = t.VehicleId,
-                    VehicleName = $"{t.Vehicle?.ModelName} {t.Vehicle?.VariantName}",
+                    VehicleId = t.VehicleId ?? 0,
+                    VehicleName = t.Vehicle != null ? $"{t.Vehicle.ModelName} {t.Vehicle.VariantName}" : "N/A",
                     DealerId = t.DealerId,
                     DealerName = t.Dealer?.Name ?? "N/A",
                     DealerAddress = t.Dealer?.Address ?? "N/A",
                     ScheduleTime = t.ScheduleTime,
                     Status = t.Status,
-                    Note = t.Note
+                    Note = t.Note,
+                    IsSlotBooking = t.ParentSlotId.HasValue,
+                    SlotTime = t.ParentSlot != null ? $"{t.ParentSlot.SlotStartTime} - {t.ParentSlot.SlotEndTime}" : null
                 }).ToList();
+            }
+
+            // NEW: Load available slots
+            if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var parsedDate))
+            {
+                SelectedDate = parsedDate;
+            }
+            else
+            {
+                SelectedDate = DateTime.Today;
+            }
+
+            if (dealerId.HasValue)
+            {
+                SelectedDealerId = dealerId.Value;
+                await LoadAvailableSlotsAsync(dealerId.Value, SelectedDate);
             }
 
             return Page();
         }
 
+        private async Task LoadAvailableSlotsAsync(int dealerId, DateTime date)
+        {
+            var slots = await _testDriveService.GetAvailableSlotsByDealerAndDateAsync(dealerId, date);
+            
+            AvailableSlots = new List<SlotViewModel>();
+            foreach (var slot in slots)
+            {
+                var availableVehicleIds = string.IsNullOrEmpty(slot.AvailableVehicleIds) 
+                    ? new List<int>() 
+                    : slot.AvailableVehicleIds.Split(',').Select(int.Parse).ToList();
+
+                var vehicles = AllVehicles.Where(v => availableVehicleIds.Contains(v.Id)).ToList();
+
+                AvailableSlots.Add(new SlotViewModel
+                {
+                    Id = slot.Id,
+                    StartTime = slot.SlotStartTime ?? "",
+                    EndTime = slot.SlotEndTime ?? "",
+                    AvailableSlots = slot.MaxSlots.GetValueOrDefault() - slot.CurrentBookings,
+                    MaxSlots = slot.MaxSlots.GetValueOrDefault(),
+                    AvailableVehicles = vehicles
+                });
+            }
+        }
+
+        public async Task<IActionResult> OnPostBookSlotAsync(int slotId, int vehicleId, string? note)
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToPage("/Auth/Login");
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == int.Parse(userId));
+            if (user == null)
+            {
+                return RedirectToPage("/Auth/Login");
+            }
+
+            var customerProfile = await _context.CustomerProfiles
+                .FirstOrDefaultAsync(c => c.UserId == user.Id);
+
+            if (customerProfile == null)
+            {
+                customerProfile = await CreateOrGetCustomerProfileAsync(user);
+            }
+
+            try
+            {
+                await _testDriveService.BookSlotAsync(slotId, customerProfile.Id, vehicleId, note);
+                TempData["Success"] = "Đặt lịch lái thử thành công! Đại lý sẽ liên hệ với bạn.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Có lỗi xảy ra: {ex.Message}";
+            }
+
+            return RedirectToPage();
+        }
+
+        // Keep old booking methods for backward compatibility...
         public async Task<IActionResult> OnPostAsync(int dealerId, int vehicleId, string date, string time, string? note)
         {
             var userId = HttpContext.Session.GetString("UserId");
@@ -106,86 +197,15 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 return RedirectToPage("/Auth/Login");
             }
 
-            // Get or create customer profile
             var customerProfile = await _context.CustomerProfiles
                 .FirstOrDefaultAsync(c => c.UserId == user.Id);
 
             if (customerProfile == null)
             {
-                // Check if profile exists with same email (but UserId is null)
-                if (!string.IsNullOrEmpty(user.Email))
-                {
-                    var existingProfileByEmail = await _context.CustomerProfiles
-                        .FirstOrDefaultAsync(c => c.Email == user.Email && c.UserId == null);
-                    
-                    if (existingProfileByEmail != null)
-                    {
-                        // Update existing profile to link with this user (only if UserId is null)
-                        existingProfileByEmail.UserId = user.Id;
-                        existingProfileByEmail.FullName = user.FullName ?? existingProfileByEmail.FullName;
-                        existingProfileByEmail.Phone = user.Phone ?? existingProfileByEmail.Phone;
-                        customerProfile = existingProfileByEmail;
-                        await _context.SaveChangesAsync();
-                    }
-                }
-
-                // If still no profile, check by phone
-                if (customerProfile == null && !string.IsNullOrEmpty(user.Phone))
-                {
-                    var existingProfileByPhone = await _context.CustomerProfiles
-                        .FirstOrDefaultAsync(c => c.Phone == user.Phone && c.UserId == null);
-                    
-                    if (existingProfileByPhone != null)
-                    {
-                        // Update existing profile by phone (only if UserId is null)
-                        existingProfileByPhone.UserId = user.Id;
-                        existingProfileByPhone.FullName = user.FullName ?? existingProfileByPhone.FullName;
-                        if (!string.IsNullOrEmpty(user.Email))
-                        {
-                            // Only set email if it doesn't conflict
-                            var emailExists = await _context.CustomerProfiles
-                                .AnyAsync(c => c.Email == user.Email && c.Id != existingProfileByPhone.Id);
-                            if (!emailExists)
-                            {
-                                existingProfileByPhone.Email = user.Email;
-                            }
-                        }
-                        customerProfile = existingProfileByPhone;
-                        await _context.SaveChangesAsync();
-                    }
-                }
-
-                // If still no profile, create new one (but skip email if it already exists)
-                if (customerProfile == null)
-                {
-                    // Check if email already exists in another profile
-                    string? emailToUse = user.Email;
-                    if (!string.IsNullOrEmpty(user.Email))
-                    {
-                        var emailExists = await _context.CustomerProfiles
-                            .AnyAsync(c => c.Email == user.Email);
-                        if (emailExists)
-                        {
-                            // Email already taken, don't set it to avoid unique constraint violation
-                            emailToUse = null;
-                        }
-                    }
-
-                    customerProfile = new CustomerProfile
-                    {
-                        UserId = user.Id,
-                        FullName = user.FullName ?? "Khách hàng",
-                        Phone = user.Phone ?? "",
-                        Email = emailToUse, // May be null if email already exists
-                        Address = "",
-                        CreatedDate = DateTime.UtcNow
-                    };
-                    _context.CustomerProfiles.Add(customerProfile);
-                    await _context.SaveChangesAsync();
-                }
+                customerProfile = await CreateOrGetCustomerProfileAsync(user);
             }
 
-            // Load dealers and vehicles for form (in case of error, need to reload page)
+            // Load dealers and vehicles for form
             var activeDealers = await _dealerService.GetActiveDealersAsync();
             AllDealers = activeDealers.Select(d => new DealerSimple
             {
@@ -206,14 +226,16 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             TestDrives = testDrives.Select(t => new TestDriveViewModel
             {
                 Id = t.Id,
-                VehicleId = t.VehicleId,
-                VehicleName = $"{t.Vehicle?.ModelName} {t.Vehicle?.VariantName}",
+                VehicleId = t.VehicleId ?? 0,
+                VehicleName = t.Vehicle != null ? $"{t.Vehicle.ModelName} {t.Vehicle.VariantName}" : "N/A",
                 DealerId = t.DealerId,
                 DealerName = t.Dealer?.Name ?? "N/A",
                 DealerAddress = t.Dealer?.Address ?? "N/A",
                 ScheduleTime = t.ScheduleTime,
                 Status = t.Status,
-                Note = t.Note
+                Note = t.Note,
+                IsSlotBooking = t.ParentSlotId.HasValue,
+                SlotTime = t.ParentSlot != null ? $"{t.ParentSlot.SlotStartTime} - {t.ParentSlot.SlotEndTime}" : null
             }).ToList();
 
             // Validate inputs
@@ -302,7 +324,6 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 return RedirectToPage("/Auth/Login");
             }
 
-            // Get customer profile
             var customerProfile = await _context.CustomerProfiles
                 .FirstOrDefaultAsync(c => c.UserId == user.Id);
 
@@ -312,7 +333,6 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 return RedirectToPage();
             }
 
-            // Get test drive
             var testDrive = await _testDriveService.GetTestDriveByIdAsync(testDriveId);
             if (testDrive == null)
             {
@@ -366,7 +386,6 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 return RedirectToPage("/Auth/Login");
             }
 
-            // Get customer profile
             var customerProfile = await _context.CustomerProfiles
                 .FirstOrDefaultAsync(c => c.UserId == user.Id);
 
@@ -376,7 +395,6 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                 return RedirectToPage();
             }
 
-            // Get test drive
             var testDrive = await _testDriveService.GetTestDriveByIdAsync(testDriveId);
             if (testDrive == null)
             {
@@ -460,6 +478,70 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             return RedirectToPage();
         }
 
+        private async Task<CustomerProfile> CreateOrGetCustomerProfileAsync(User user)
+        {
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                var existingProfileByEmail = await _context.CustomerProfiles
+                    .FirstOrDefaultAsync(c => c.Email == user.Email && c.UserId == null);
+                
+                if (existingProfileByEmail != null)
+                {
+                    existingProfileByEmail.UserId = user.Id;
+                    existingProfileByEmail.FullName = user.FullName ?? existingProfileByEmail.FullName;
+                    existingProfileByEmail.Phone = user.Phone ?? existingProfileByEmail.Phone;
+                    await _context.SaveChangesAsync();
+                    return existingProfileByEmail;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(user.Phone))
+            {
+                var existingProfileByPhone = await _context.CustomerProfiles
+                    .FirstOrDefaultAsync(c => c.Phone == user.Phone && c.UserId == null);
+                
+                if (existingProfileByPhone != null)
+                {
+                    existingProfileByPhone.UserId = user.Id;
+                    existingProfileByPhone.FullName = user.FullName ?? existingProfileByPhone.FullName;
+                    if (!string.IsNullOrEmpty(user.Email))
+                    {
+                        var emailExists = await _context.CustomerProfiles
+                            .AnyAsync(c => c.Email == user.Email && c.Id != existingProfileByPhone.Id);
+                        if (!emailExists)
+                        {
+                            existingProfileByPhone.Email = user.Email;
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                    return existingProfileByPhone;
+                }
+            }
+
+            string? emailToUse = user.Email;
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                var emailExists = await _context.CustomerProfiles.AnyAsync(c => c.Email == user.Email);
+                if (emailExists)
+                {
+                    emailToUse = null;
+                }
+            }
+
+            var customerProfile = new CustomerProfile
+            {
+                UserId = user.Id,
+                FullName = user.FullName ?? "Khách hàng",
+                Phone = user.Phone ?? "",
+                Email = emailToUse,
+                Address = "",
+                CreatedDate = DateTime.UtcNow
+            };
+            _context.CustomerProfiles.Add(customerProfile);
+            await _context.SaveChangesAsync();
+            return customerProfile;
+        }
+
         public class TestDriveViewModel
         {
             public int Id { get; set; }
@@ -471,6 +553,8 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             public DateTime ScheduleTime { get; set; }
             public string Status { get; set; } = "";
             public string? Note { get; set; }
+            public bool IsSlotBooking { get; set; }
+            public string? SlotTime { get; set; }
         }
 
         public class DealerSimple
@@ -484,6 +568,16 @@ namespace Vehicle_Dealer_Management.Pages.Customer
         {
             public int Id { get; set; }
             public string Name { get; set; } = "";
+        }
+
+        public class SlotViewModel
+        {
+            public int Id { get; set; }
+            public string StartTime { get; set; } = "";
+            public string EndTime { get; set; } = "";
+            public int AvailableSlots { get; set; }
+            public int MaxSlots { get; set; }
+            public List<VehicleSimple> AvailableVehicles { get; set; } = new();
         }
     }
 }

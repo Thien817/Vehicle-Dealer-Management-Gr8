@@ -1,0 +1,381 @@
+@page
+@model Vehicle_Dealer_Management.Pages.Dealer.TestDriveSlotsModel
+@{
+    ViewData["Title"] = "Qu?n lý Slot lái th?";
+    ViewData["UserRole"] = "DEALER_STAFF";
+    ViewData["UserName"] = HttpContext.Session.GetString("UserName") ?? "Dealer Staff";
+}
+
+<div class="content-header">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="content-title">Qu?n lý Slot lái th?</h1>
+            <p class="content-subtitle">T?o và qu?n lý các slot lái th? theo ngày và khung gi?</p>
+        </div>
+        <a href="/Dealer/TestDrives" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Xem Bookings
+        </a>
+    </div>
+</div>
+
+@await Html.PartialAsync("_ToastNotifications")
+
+<!-- Date Selector -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="flex items-center gap-3">
+            <label class="form-label mb-0" style="min-width: 100px;">Ch?n ngày:</label>
+            <input type="date" 
+                   id="dateSelector" 
+                   class="form-control" 
+                   value="@Model.SelectedDate.ToString("yyyy-MM-dd")" 
+                   min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                   style="max-width: 200px;"
+                   onchange="window.location.href='?date=' + this.value" />
+            <button class="btn btn-primary" onclick="document.getElementById('createSlotModal').style.display='flex'">
+                <i class="bi bi-plus-circle"></i> T?o Slot m?i
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Display Selected Date -->
+<div class="card mb-4" style="background: var(--info-bg); border-color: var(--info);">
+    <div class="card-body">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <i class="bi bi-calendar-check" style="font-size: 2rem; color: var(--info);"></i>
+            <div>
+                <h3 style="margin: 0; color: var(--text-heading);">
+                    @Model.SelectedDate.ToString("dddd, dd/MM/yyyy")
+                </h3>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">
+                    @Model.Slots.Count slot | T?ng @Model.Slots.Sum(s => s.CurrentBookings) booking
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slots List -->
+@if (Model.Slots.Any())
+{
+    <div class="grid grid-cols-1 gap-3">
+        @foreach (var slot in Model.Slots)
+        {
+            <div class="card">
+                <div class="card-header" style="background: @(slot.IsFull ? "var(--error-bg)" : "var(--success-bg)"); border-bottom: 1px solid var(--border);">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="bi bi-clock" style="font-size: 1.5rem; color: var(--accent-cyan);"></i>
+                                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700;">
+                                    @slot.StartTime - @slot.EndTime
+                                </h3>
+                            </div>
+                            <div style="background: var(--bg); padding: 0.375rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                                <span style="font-weight: 600; color: @(slot.IsFull ? "var(--error)" : "var(--success)");">
+                                    @slot.CurrentBookings/@slot.MaxSlots
+                                </span>
+                                <span class="text-muted" style="font-size: 0.875rem;">
+                                    (@slot.AvailableSlots còn tr?ng)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            @if (slot.IsFull)
+                            {
+                                <span class="badge badge-error">
+                                    <i class="bi bi-x-circle"></i> ?ã ??
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-success">
+                                    <i class="bi bi-check-circle"></i> Còn ch?
+                                </span>
+                            }
+                            <form method="post" asp-page-handler="DeleteSlot" id="deleteForm@(slot.Id)" style="display: inline;">
+                                <input type="hidden" name="slotId" value="@slot.Id" />
+                                <input type="hidden" name="returnDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                <button type="button" class="btn btn-danger btn-sm" 
+                                        onclick="showConfirmModal('Xóa Slot', 'B?n có ch?c ch?n mu?n xóa slot này?@(slot.CurrentBookings > 0 ? "\n\nC?nh báo: Slot này có " + slot.CurrentBookings + " booking. Không th? xóa!" : "")', function() { @(slot.CurrentBookings > 0 ? "return false;" : "document.getElementById('deleteForm" + slot.Id + "').submit();") }, 'Xóa', 'H?y', 'danger');">
+                                    <i class="bi bi-trash"></i> Xóa slot
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Available Vehicles -->
+                    <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--surface); border-radius: var(--radius-sm);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <i class="bi bi-car-front" style="color: var(--accent-cyan);"></i>
+                            <strong style="font-size: 0.875rem;">Xe có s?n:</strong>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 0.875rem;">
+                            @slot.AvailableVehicleNames
+                        </div>
+                    </div>
+
+                    <!-- Bookings -->
+                    @if (slot.Bookings.Any())
+                    {
+                        <div>
+                            <h4 style="margin-bottom: 0.75rem; font-size: 1rem;">Danh sách booking (@slot.Bookings.Count)</h4>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Khách hàng</th>
+                                            <th>Xe</th>
+                                            <th>Tr?ng thái</th>
+                                            <th>Ghi chú</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var booking in slot.Bookings)
+                                        {
+                                            <tr>
+                                                <td><strong>#@booking.Id</strong></td>
+                                                <td>
+                                                    <div><strong>@booking.CustomerName</strong></div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">@booking.CustomerPhone</div>
+                                                </td>
+                                                <td>@booking.VehicleName</td>
+                                                <td>@await Html.PartialAsync("_StatusBadge", booking.Status)</td>
+                                                <td class="text-muted" style="font-size: 0.875rem;">@booking.Note</td>
+                                                <td>
+                                                    @if (booking.Status == "REQUESTED")
+                                                    {
+                                                        <form method="post" asp-page-handler="ConfirmBooking" style="display: inline;">
+                                                            <input type="hidden" name="bookingId" value="@booking.Id" />
+                                                            <input type="hidden" name="returnDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                            <button type="submit" class="btn btn-success btn-sm">
+                                                                <i class="bi bi-check"></i> Xác nh?n
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    @if (booking.Status == "CONFIRMED")
+                                                    {
+                                                        <form method="post" asp-page-handler="MarkDone" style="display: inline;">
+                                                            <input type="hidden" name="bookingId" value="@booking.Id" />
+                                                            <input type="hidden" name="returnDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                                <i class="bi bi-check-circle"></i> Hoàn thành
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state" style="padding: 2rem 1rem;">
+                            <div class="empty-state-icon">??</div>
+                            <div class="empty-state-text">Ch?a có booking nào trong slot này</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state">
+                <div class="empty-state-icon">??</div>
+                <div class="empty-state-title">Ch?a có slot nào</div>
+                <div class="empty-state-text">T?o slot m?i ?? khách hàng có th? ??t l?ch lái th?</div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Create Slot Modal -->
+<div id="createSlotModal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="document.getElementById('createSlotModal').style.display='none'"></div>
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>T?o Slot lái th? m?i</h3>
+            <button class="modal-close" onclick="document.getElementById('createSlotModal').style.display='none'">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form method="post" asp-page-handler="CreateSlot">
+                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                
+                <div class="form-group">
+                    <label class="form-label">Ngày <span style="color: var(--error);">*</span></label>
+                    <input type="date" 
+                           class="form-control" 
+                           value="@Model.SelectedDate.ToString("yyyy-MM-dd")" 
+                           disabled 
+                           style="background: var(--surface); color: var(--text-muted);" />
+                    <small class="form-text">Slot s? ???c t?o cho ngày: @Model.SelectedDate.ToString("dddd, dd/MM/yyyy")</small>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="form-group">
+                        <label class="form-label">Gi? b?t ??u <span style="color: var(--error);">*</span></label>
+                        <select name="startTime" class="form-control" required>
+                            <option value="">-- Ch?n gi? --</option>
+                            <option value="07:00">07:00</option>
+                            <option value="08:00">08:00</option>
+                            <option value="09:00">09:00</option>
+                            <option value="10:00">10:00</option>
+                            <option value="11:00">11:00</option>
+                            <option value="13:00">13:00</option>
+                            <option value="14:00">14:00</option>
+                            <option value="15:00">15:00</option>
+                            <option value="16:00">16:00</option>
+                            <option value="17:00">17:00</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Gi? k?t thúc <span style="color: var(--error);">*</span></label>
+                        <select name="endTime" class="form-control" required>
+                            <option value="">-- Ch?n gi? --</option>
+                            <option value="09:00">09:00</option>
+                            <option value="10:00">10:00</option>
+                            <option value="11:00">11:00</option>
+                            <option value="12:00">12:00</option>
+                            <option value="13:00">13:00</option>
+                            <option value="14:00">14:00</option>
+                            <option value="15:00">15:00</option>
+                            <option value="16:00">16:00</option>
+                            <option value="17:00">17:00</option>
+                            <option value="18:00">18:00</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">S? l??ng khách t?i ?a <span style="color: var(--error);">*</span></label>
+                    <input type="number" name="maxSlots" class="form-control" min="1" max="10" value="3" required placeholder="Ví d?: 3" />
+                    <small class="form-text">S? l??ng khách hàng có th? book trong khung gi? này</small>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label class="form-label">Ch?n xe có s?n <span style="color: var(--error);">*</span></label>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; background: var(--surface);">
+                        @if (Model.AllVehicles.Any())
+                        {
+                            @foreach (var vehicle in Model.AllVehicles)
+                            {
+                                <div style="margin-bottom: 0.5rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.375rem; border-radius: var(--radius-sm); transition: background 0.2s;">
+                                        <input type="checkbox" name="vehicleIds" value="@vehicle.Id" style="cursor: pointer;" />
+                                        <span>@vehicle.Name</span>
+                                    </label>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted" style="margin: 0;">Không có xe nào kh? d?ng</p>
+                        }
+                    </div>
+                    <small class="form-text">Ch?n các m?u xe khách hàng có th? lái th? trong slot này</small>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('createSlotModal').style.display='none'">
+                        H?y
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> T?o Slot
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2001;
+        }
+        
+        .modal-content {
+            position: relative;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 2002;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: var(--text-heading);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.5rem;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+        }
+        
+        .modal-close:hover {
+            background: var(--border-subtle);
+            color: var(--text);
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        label:has(input[type="checkbox"]):hover {
+            background: var(--bg) !important;
+        }
+    </style>
+}

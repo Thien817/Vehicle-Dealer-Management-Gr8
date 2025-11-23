@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Vehicle_Dealer_Management.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class AddTestDriveSlotSystem : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -417,14 +417,20 @@ namespace Vehicle_Dealer_Management.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    CustomerId = table.Column<int>(type: "int", nullable: false),
                     DealerId = table.Column<int>(type: "int", nullable: false),
-                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    CustomerId = table.Column<int>(type: "int", nullable: true),
+                    VehicleId = table.Column<int>(type: "int", nullable: true),
                     ScheduleTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsSlot = table.Column<bool>(type: "bit", nullable: false),
+                    SlotStartTime = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
+                    SlotEndTime = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
+                    MaxSlots = table.Column<int>(type: "int", nullable: true),
+                    ParentSlotId = table.Column<int>(type: "int", nullable: true),
+                    AvailableVehicleIds = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -433,8 +439,7 @@ namespace Vehicle_Dealer_Management.Migrations
                         name: "FK_TestDrives_CustomerProfiles_CustomerId",
                         column: x => x.CustomerId,
                         principalTable: "CustomerProfiles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_TestDrives_Dealers_DealerId",
                         column: x => x.DealerId,
@@ -442,11 +447,15 @@ namespace Vehicle_Dealer_Management.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
+                        name: "FK_TestDrives_TestDrives_ParentSlotId",
+                        column: x => x.ParentSlotId,
+                        principalTable: "TestDrives",
+                        principalColumn: "Id");
+                    table.ForeignKey(
                         name: "FK_TestDrives_Vehicles_VehicleId",
                         column: x => x.VehicleId,
                         principalTable: "Vehicles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -855,6 +864,11 @@ namespace Vehicle_Dealer_Management.Migrations
                 name: "IX_TestDrives_DealerId_ScheduleTime",
                 table: "TestDrives",
                 columns: new[] { "DealerId", "ScheduleTime" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TestDrives_ParentSlotId",
+                table: "TestDrives",
+                column: "ParentSlotId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TestDrives_VehicleId",
