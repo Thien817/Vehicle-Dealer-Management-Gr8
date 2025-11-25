@@ -170,8 +170,8 @@ namespace Vehicle_Dealer_Management.BLL.Services
                 return false;
             }
 
-            // Check if slot is in the future
-            if (slot.ScheduleTime < DateTime.UtcNow)
+            // Check if slot date is today or in the future
+            if (slot.ScheduleTime.Date < DateTime.UtcNow.Date)
             {
                 return false;
             }
@@ -182,16 +182,28 @@ namespace Vehicle_Dealer_Management.BLL.Services
 
         public async Task<TestDrive> BookSlotAsync(int slotId, int customerId, int vehicleId, string? note = null)
         {
-            // Validate slot
-            if (!await CanBookSlotAsync(slotId))
+            // Check if customer already has an active booking
+            if (await HasActiveBookingAsync(customerId))
             {
-                throw new InvalidOperationException("Slot is not available for booking");
+                throw new InvalidOperationException("Bạn đã có một lịch lái thử chưa hoàn thành. Vui lòng hoàn thành hoặc hủy lịch hiện tại trước khi đặt lịch mới.");
             }
 
             var slot = await _testDriveRepository.GetSlotByIdAsync(slotId);
             if (slot == null)
             {
                 throw new KeyNotFoundException($"Slot with ID {slotId} not found");
+            }
+
+            // Check if slot is full
+            if (slot.IsFull)
+            {
+                throw new InvalidOperationException("Slot này đã đầy. Vui lòng chọn slot khác.");
+            }
+
+            // Check if slot date is in the past
+            if (slot.ScheduleTime.Date < DateTime.UtcNow.Date)
+            {
+                throw new InvalidOperationException("Slot này đã quá hạn. Vui lòng chọn slot khác.");
             }
 
             // Validate vehicle is in available list
@@ -202,6 +214,12 @@ namespace Vehicle_Dealer_Management.BLL.Services
                 {
                     throw new ArgumentException("Vehicle is not available in this slot");
                 }
+            }
+
+            // Check if this vehicle is already booked in this slot (mỗi xe và mỗi slot chỉ có thể đặt booking 1 lần)
+            if (await IsVehicleBookedInSlotAsync(slotId, vehicleId))
+            {
+                throw new InvalidOperationException("Xe này đã được đặt trong slot này. Vui lòng chọn xe khác hoặc slot khác.");
             }
 
             // Create booking
@@ -219,6 +237,21 @@ namespace Vehicle_Dealer_Management.BLL.Services
             };
 
             return await _testDriveRepository.AddAsync(booking);
+        }
+
+        public async Task<bool> HasActiveBookingAsync(int customerId)
+        {
+            return await _testDriveRepository.HasActiveBookingAsync(customerId);
+        }
+
+        public async Task<bool> IsVehicleBookedInSlotAsync(int slotId, int vehicleId)
+        {
+            return await _testDriveRepository.IsVehicleBookedInSlotAsync(slotId, vehicleId);
+        }
+
+        public async Task<IEnumerable<TestDrive>> GetBookingsBySlotIdAsync(int slotId)
+        {
+            return await _testDriveRepository.GetBookingsBySlotIdAsync(slotId);
         }
     }
 }

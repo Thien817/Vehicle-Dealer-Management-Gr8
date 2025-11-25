@@ -93,15 +93,16 @@ namespace Vehicle_Dealer_Management.DAL.Repositories
         {
             var startDate = date.Date;
             var endDate = startDate.AddDays(1);
-            var now = DateTime.UtcNow;
+            var today = DateTime.UtcNow.Date;
 
+            // Get all slots for the date (including full slots) as long as date is today or future
             var slots = await _context.TestDrives
                 .Include(t => t.Dealer)
                 .Where(t => t.DealerId == dealerId 
                     && t.IsSlot // Only slots
                     && t.ScheduleTime >= startDate 
                     && t.ScheduleTime < endDate
-                    && t.ScheduleTime >= now) // Only future slots
+                    && t.ScheduleTime >= today) // Only today or future slots
                 .OrderBy(t => t.SlotStartTime)
                 .ToListAsync();
 
@@ -111,8 +112,8 @@ namespace Vehicle_Dealer_Management.DAL.Repositories
                 slot.CurrentBookings = await GetSlotBookingCountAsync(slot.Id);
             }
 
-            // Filter out full slots
-            return slots.Where(s => !s.IsFull).ToList();
+            // Return all slots (including full ones) so customer can see them
+            return slots;
         }
 
         public async Task<TestDrive?> GetSlotByIdAsync(int slotId)
@@ -144,6 +145,23 @@ namespace Vehicle_Dealer_Management.DAL.Repositories
                 .Where(t => t.ParentSlotId == slotId)
                 .OrderBy(t => t.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<bool> HasActiveBookingAsync(int customerId)
+        {
+            return await _context.TestDrives
+                .AnyAsync(t => t.CustomerId == customerId 
+                    && !t.IsSlot 
+                    && t.Status != "DONE" 
+                    && t.Status != "CANCELLED");
+        }
+
+        public async Task<bool> IsVehicleBookedInSlotAsync(int slotId, int vehicleId)
+        {
+            return await _context.TestDrives
+                .AnyAsync(t => t.ParentSlotId == slotId 
+                    && t.VehicleId == vehicleId 
+                    && t.Status != "CANCELLED");
         }
     }
 }

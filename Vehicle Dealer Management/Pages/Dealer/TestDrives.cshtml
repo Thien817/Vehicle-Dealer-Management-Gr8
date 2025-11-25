@@ -119,10 +119,16 @@
                                 <td>
                                     @if (td.Status == "REQUESTED")
                                     {
-                                        <form method="post" asp-page-handler="Confirm" style="display: inline;">
+                                        <form method="post" asp-page-handler="Confirm" id="confirmForm@(td.Id)" style="display: inline;">
                                             <input type="hidden" name="id" value="@td.Id" />
                                             <button type="submit" class="btn btn-success btn-sm">
                                                 <i class="bi bi-check"></i> Xác nhận
+                                            </button>
+                                        </form>
+                                        <form method="post" asp-page-handler="Cancel" id="cancelForm@(td.Id)" style="display: inline; margin-left: 0.5rem;">
+                                            <input type="hidden" name="id" value="@td.Id" />
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="showConfirmModal('Hủy lịch lái thử', 'Bạn có chắc chắn muốn hủy lịch lái thử này? Hành động này không thể hoàn tác.', function() { document.getElementById('cancelForm@(td.Id)').submit(); }, 'Xác nhận hủy', 'Hủy', 'danger');">
+                                                <i class="bi bi-x-circle"></i> Hủy
                                             </button>
                                         </form>
                                     }
@@ -132,6 +138,12 @@
                                             <input type="hidden" name="id" value="@td.Id" />
                                             <button type="submit" class="btn btn-primary btn-sm">
                                                 <i class="bi bi-check-circle"></i> Hoàn thành
+                                            </button>
+                                        </form>
+                                        <form method="post" asp-page-handler="Cancel" id="cancelFormConfirmed@(td.Id)" style="display: inline; margin-left: 0.5rem;">
+                                            <input type="hidden" name="id" value="@td.Id" />
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="showConfirmModal('Hủy lịch lái thử', 'Bạn có chắc chắn muốn hủy lịch lái thử này? Hành động này không thể hoàn tác.', function() { document.getElementById('cancelFormConfirmed@(td.Id)').submit(); }, 'Xác nhận hủy', 'Hủy', 'danger');">
+                                                <i class="bi bi-x-circle"></i> Hủy
                                             </button>
                                         </form>
                                     }

@@ -15,6 +15,10 @@ namespace Vehicle_Dealer_Management.DAL.IRepository
         Task<TestDrive?> GetSlotByIdAsync(int slotId);
         Task<int> GetSlotBookingCountAsync(int slotId);
         Task<IEnumerable<TestDrive>> GetBookingsBySlotIdAsync(int slotId);
+        
+        // Customer booking checks
+        Task<bool> HasActiveBookingAsync(int customerId);
+        Task<bool> IsVehicleBookedInSlotAsync(int slotId, int vehicleId);
     }
 }
 

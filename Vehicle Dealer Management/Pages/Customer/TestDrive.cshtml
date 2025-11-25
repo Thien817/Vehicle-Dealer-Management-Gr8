@@ -13,14 +13,28 @@
             <p class="content-subtitle">Đặt lịch và theo dõi lịch hẹn lái thử</p>
         </div>
         <div class="flex gap-2">
-            <button class="btn btn-secondary" onclick="document.getElementById('bookModal').style.display='flex'">
-                <i class="bi bi-calendar-plus"></i> Đặt lịch trực tiếp
-            </button>
+            @if (!Model.HasActiveBooking)
+            {
+            @if (!Model.HasActiveBooking)
+            {
+                <button class="btn btn-secondary" onclick="document.getElementById('bookModal').style.display='flex'">
+                    <i class="bi bi-calendar-plus"></i> Đặt lịch trực tiếp
+                </button>
+            }
+            }
         </div>
     </div>
 </div>
 
 @await Html.PartialAsync("_ToastNotifications")
+
+@if (Model.HasActiveBooking)
+{
+    <div class="inline-alert alert-warning" style="margin-bottom: 1rem;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>Bạn đã có một lịch lái thử chưa hoàn thành. Vui lòng hoàn thành hoặc hủy lịch hiện tại trước khi đặt lịch mới.</span>
+    </div>
+}
 
 <!-- Search Slots Section -->
 <div class="card mb-4">
@@ -79,33 +93,77 @@
                 <div class="grid grid-cols-1 gap-3">
                     @foreach (var slot in Model.AvailableSlots)
                     {
-                        <div class="card" style="border: 2px solid var(--success);">
+                        var isSlotFull = slot.IsFull || slot.AvailableSlots <= 0;
+                        var borderColor = isSlotFull ? "var(--border)" : "var(--success)";
+                        var backgroundColor = isSlotFull ? "var(--surface)" : "";
+                        
+                        <div class="card" style="border: 2px solid @borderColor; @(isSlotFull ? "opacity: 0.7; background: " + backgroundColor + ";" : "")">
                             <div class="card-body">
                                 <div class="flex justify-between items-start mb-3">
                                     <div>
                                         <h4 style="margin-bottom: 0.5rem;">
                                             <i class="bi bi-clock"></i> @slot.StartTime - @slot.EndTime
                                         </h4>
-                                        <p class="text-muted" style="font-size: 0.875rem; margin: 0;">
-                                            Còn <strong style="color: var(--success);">@slot.AvailableSlots/@slot.MaxSlots</strong> chỗ trống
-                                        </p>
+                                        @if (isSlotFull)
+                                        {
+                                            <p class="text-muted" style="font-size: 0.875rem; margin: 0;">
+                                                <strong style="color: var(--text-muted);">Đã đầy: @slot.MaxSlots/@slot.MaxSlots</strong>
+                                            </p>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted" style="font-size: 0.875rem; margin: 0;">
+                                                Còn <strong style="color: var(--success);">@slot.AvailableSlots/@slot.MaxSlots</strong> chỗ trống
+                                            </p>
+                                        }
                                     </div>
-                                    <span class="badge badge-success">Có sẵn</span>
+                                    @if (isSlotFull)
+                                    {
+                                        <span class="badge badge-secondary">Đã đầy</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-success">Có sẵn</span>
+                                    }
                                 </div>
 
                                 <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--surface); border-radius: var(--radius-sm);">
                                     <div style="margin-bottom: 0.5rem;"><strong>Xe có sẵn:</strong></div>
                                     @foreach (var vehicle in slot.AvailableVehicles)
                                     {
-                                        <span class="badge badge-default" style="margin-right: 0.5rem; margin-bottom: 0.5rem;">
-                                            <i class="bi bi-car-front"></i> @vehicle.Name
-                                        </span>
+                                        if (vehicle.IsBooked)
+                                        {
+                                            <span class="badge badge-danger" style="margin-right: 0.5rem; margin-bottom: 0.5rem;" title="Xe này đã được đặt">
+                                                <i class="bi bi-car-front"></i> @vehicle.Name <i class="bi bi-x-circle"></i>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-default" style="margin-right: 0.5rem; margin-bottom: 0.5rem;">
+                                                <i class="bi bi-car-front"></i> @vehicle.Name
+                                            </span>
+                                        }
                                     }
                                 </div>
 
-                                <button class="btn btn-primary btn-sm" onclick="openBookSlotModal(@slot.Id, '@slot.StartTime', '@slot.EndTime', @System.Text.Json.JsonSerializer.Serialize(slot.AvailableVehicles))">
-                                    <i class="bi bi-calendar-check"></i> Đặt lịch Slot này
-                                </button>
+                                @if (slot.IsFull || slot.AvailableSlots <= 0)
+                                {
+                                    <button class="btn btn-secondary btn-sm" disabled>
+                                        <i class="bi bi-calendar-x"></i> Slot đã đầy
+                                    </button>
+                                }
+                                else if (!Model.HasActiveBooking)
+                                {
+                                    <button class="btn btn-primary btn-sm" onclick="openBookSlotModal(@slot.Id, '@slot.StartTime', '@slot.EndTime', @System.Text.Json.JsonSerializer.Serialize(slot.AvailableVehicles), @System.Text.Json.JsonSerializer.Serialize(slot.BookedVehicleIds))">
+                                        <i class="bi bi-calendar-check"></i> Đặt lịch Slot này
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary btn-sm" disabled>
+                                        <i class="bi bi-calendar-check"></i> Đặt lịch Slot này
+                                    </button>
+                                }
                             </div>
                         </div>
                     }
@@ -260,6 +318,9 @@
                     <select class="form-control" name="vehicleId" id="bookSlotVehicle" required>
                         <option value="">-- Chọn xe --</option>
                     </select>
+                    <small class="text-muted" id="bookedVehicleWarning" style="display: none; color: var(--danger); margin-top: 0.5rem;">
+                        <i class="bi bi-exclamation-triangle"></i> Xe này đã được đặt trong slot này
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -430,19 +491,37 @@
         document.getElementById('editModal').style.display = 'flex';
     }
 
-    function openBookSlotModal(slotId, startTime, endTime, vehicles) {
+    function openBookSlotModal(slotId, startTime, endTime, vehicles, bookedVehicleIds) {
         document.getElementById('bookSlotId').value = slotId;
         document.getElementById('bookSlotTimeDisplay').textContent = startTime + ' - ' + endTime;
         
         var vehicleSelect = document.getElementById('bookSlotVehicle');
+        var warningDiv = document.getElementById('bookedVehicleWarning');
         vehicleSelect.innerHTML = '<option value="">-- Chọn xe --</option>';
         
         vehicles.forEach(function(vehicle) {
             var option = document.createElement('option');
             option.value = vehicle.Id;
             option.textContent = vehicle.Name;
+            
+            // Disable if vehicle is booked
+            if (vehicle.IsBooked || (bookedVehicleIds && bookedVehicleIds.includes(vehicle.Id))) {
+                option.disabled = true;
+                option.textContent += ' (Đã được đặt)';
+            }
+            
             vehicleSelect.appendChild(option);
         });
+        
+        // Add change event listener to show warning
+        vehicleSelect.onchange = function() {
+            var selectedVehicle = vehicles.find(v => v.Id == parseInt(vehicleSelect.value));
+            if (selectedVehicle && (selectedVehicle.IsBooked || (bookedVehicleIds && bookedVehicleIds.includes(selectedVehicle.Id)))) {
+                warningDiv.style.display = 'block';
+            } else {
+                warningDiv.style.display = 'none';
+            }
+        };
         
         document.getElementById('bookSlotModal').style.display = 'flex';
     }

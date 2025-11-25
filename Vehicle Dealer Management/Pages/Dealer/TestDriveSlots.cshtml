@@ -1,7 +1,7 @@
-@page
+﻿@page
 @model Vehicle_Dealer_Management.Pages.Dealer.TestDriveSlotsModel
 @{
-    ViewData["Title"] = "Qu?n l� Slot l�i th?";
+    ViewData["Title"] = "Quản lý Slot lái thử";
     ViewData["UserRole"] = "DEALER_STAFF";
     ViewData["UserName"] = HttpContext.Session.GetString("UserName") ?? "Dealer Staff";
 }
@@ -9,8 +9,8 @@
 <div class="content-header">
     <div class="flex justify-between items-center">
         <div>
-            <h1 class="content-title">Qu?n l� Slot l�i th?</h1>
-            <p class="content-subtitle">T?o v� qu?n l� c�c slot l�i th? theo ng�y v� khung gi?</p>
+            <h1 class="content-title">Quản lý Slot lái thử</h1>
+            <p class="content-subtitle">Tạo và quản lý các slot lái thử theo ngày và khung giờ</p>
         </div>
         <a href="/Dealer/TestDrives" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Xem Bookings
@@ -24,7 +24,7 @@
 <div class="card mb-4">
     <div class="card-body">
         <div class="flex items-center gap-3">
-            <label class="form-label mb-0" style="min-width: 100px;">Ch?n ng�y:</label>
+            <label class="form-label mb-0" style="min-width: 100px;">Chọn ngày:</label>
             <input type="date" 
                    id="dateSelector" 
                    class="form-control" 
@@ -33,7 +33,7 @@
                    style="max-width: 200px;"
                    onchange="window.location.href='?date=' + this.value" />
             <button class="btn btn-primary" onclick="document.getElementById('createSlotModal').style.display='flex'">
-                <i class="bi bi-plus-circle"></i> T?o Slot m?i
+                <i class="bi bi-plus-circle"></i> Tạo Slot mới
             </button>
         </div>
     </div>
@@ -49,7 +49,7 @@
                     @Model.SelectedDate.ToString("dddd, dd/MM/yyyy")
                 </h3>
                 <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">
-                    @Model.Slots.Count slot | T?ng @Model.Slots.Sum(s => s.CurrentBookings) booking
+                    @Model.Slots.Count slot | Tổng @Model.Slots.Sum(s => s.CurrentBookings) booking
                 </p>
             </div>
         </div>
@@ -77,7 +77,7 @@
                                     @slot.CurrentBookings/@slot.MaxSlots
                                 </span>
                                 <span class="text-muted" style="font-size: 0.875rem;">
-                                    (@slot.AvailableSlots c�n tr?ng)
+                                    (@slot.AvailableSlots còn trống)
                                 </span>
                             </div>
                         </div>
@@ -85,21 +85,21 @@
                             @if (slot.IsFull)
                             {
                                 <span class="badge badge-error">
-                                    <i class="bi bi-x-circle"></i> ?� ??
+                                    <i class="bi bi-x-circle"></i> đã hết chỗ
                                 </span>
                             }
                             else
                             {
                                 <span class="badge badge-success">
-                                    <i class="bi bi-check-circle"></i> C�n ch?
+                                    <i class="bi bi-check-circle"></i> Còn chỗ
                                 </span>
                             }
                             <form method="post" asp-page-handler="DeleteSlot" id="deleteForm@(slot.Id)" style="display: inline;">
                                 <input type="hidden" name="slotId" value="@slot.Id" />
                                 <input type="hidden" name="returnDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                 <button type="button" class="btn btn-danger btn-sm" 
-                                        onclick="showConfirmModal('X�a Slot', 'B?n c� ch?c ch?n mu?n x�a slot n�y?@(slot.CurrentBookings > 0 ? "\n\nC?nh b�o: Slot n�y c� " + slot.CurrentBookings + " booking. Kh�ng th? x�a!" : "")', function() { @(slot.CurrentBookings > 0 ? "return false;" : "document.getElementById('deleteForm" + slot.Id + "').submit();") }, 'X�a', 'H?y', 'danger');">
-                                    <i class="bi bi-trash"></i> X�a slot
+                                        onclick="showConfirmModal('Xóa Slot', 'Bạn có chắc chắn muốn xóa slot này?@(slot.CurrentBookings > 0 ? "\n\nCảnh báo: Slot này có " + slot.CurrentBookings + " booking. Không thể xóa!" : "")', function() { @(slot.CurrentBookings > 0 ? "return false;" : "document.getElementById('deleteForm" + slot.Id + "').submit();") }, 'Xóa', 'Hủy', 'danger');">
+                                    <i class="bi bi-trash"></i> Xóa slot
                                 </button>
                             </form>
                         </div>
@@ -110,7 +110,7 @@
                     <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--surface); border-radius: var(--radius-sm);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                             <i class="bi bi-car-front" style="color: var(--accent-cyan);"></i>
-                            <strong style="font-size: 0.875rem;">Xe c� s?n:</strong>
+                            <strong style="font-size: 0.875rem;">Xe có sẵn:</strong>
                         </div>
                         <div style="color: var(--text-muted); font-size: 0.875rem;">
                             @slot.AvailableVehicleNames
@@ -121,16 +121,16 @@
                     @if (slot.Bookings.Any())
                     {
                         <div>
-                            <h4 style="margin-bottom: 0.75rem; font-size: 1rem;">Danh s�ch booking (@slot.Bookings.Count)</h4>
+                            <h4 style="margin-bottom: 0.75rem; font-size: 1rem;">Danh sách booking (@slot.Bookings.Count)</h4>
                             <div class="table-container">
                                 <table class="table">
                                     <thead>
                                         <tr>
                                             <th>ID</th>
-                                            <th>Kh�ch h�ng</th>
+                                            <th>Khách hàng</th>
                                             <th>Xe</th>
-                                            <th>Tr?ng th�i</th>
-                                            <th>Ghi ch�</th>
+                                            <th>Trạng thái</th>
+                                            <th>Ghi chú</th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -154,14 +154,14 @@
                                                                 <input type="hidden" name="bookingId" value="@booking.Id" />
                                                                 <input type="hidden" name="returnDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                                 <button type="submit" class="btn btn-success btn-sm">
-                                                                    <i class="bi bi-check"></i> X�c nh?n
+                                                                    <i class="bi bi-check"></i> Xác nhận
                                                                 </button>
                                                             </form>
                                                             <form method="post" asp-page-handler="RejectBooking" style="display: inline;">
                                                                 <input type="hidden" name="bookingId" value="@booking.Id" />
                                                                 <input type="hidden" name="returnDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                                 <button type="submit" class="btn btn-danger btn-sm">
-                                                                    <i class="bi bi-x"></i> T? ch?i
+                                                                    <i class="bi bi-x"></i> Từ chối
                                                                 </button>
                                                             </form>
                                                         }
@@ -171,7 +171,7 @@
                                                                 <input type="hidden" name="bookingId" value="@booking.Id" />
                                                                 <input type="hidden" name="returnDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                                 <button type="submit" class="btn btn-primary btn-sm">
-                                                                    <i class="bi bi-check-circle"></i> Ho�n th�nh
+                                                                    <i class="bi bi-check-circle"></i> Hoàn thành
                                                                 </button>
                                                             </form>
                                                         }
@@ -187,8 +187,8 @@
                     else
                     {
                         <div class="empty-state" style="padding: 2rem 1rem;">
-                            <div class="empty-state-icon">??</div>
-                            <div class="empty-state-text">Ch?a c� booking n�o trong slot n�y</div>
+                            <div class="empty-state-icon">📌</div>
+                            <div class="empty-state-text">Chưa có booking nào trong slot này</div>
                         </div>
                     }
                 </div>
@@ -201,9 +201,9 @@ else
     <div class="card">
         <div class="card-body">
             <div class="empty-state">
-                <div class="empty-state-icon">??</div>
-                <div class="empty-state-title">Ch?a c� slot n�o</div>
-                <div class="empty-state-text">T?o slot m?i ?? kh�ch h�ng c� th? ??t l?ch l�i th?</div>
+                <div class="empty-state-icon">📅</div>
+                <div class="empty-state-title">Chưa có slot nào</div>
+                <div class="empty-state-text">Tạo slot mới để khách hàng có thể đặt lịch lái thử.</div>
             </div>
         </div>
     </div>
@@ -214,7 +214,7 @@ else
     <div class="modal-overlay" onclick="document.getElementById('createSlotModal').style.display='none'"></div>
     <div class="modal-content" style="max-width: 600px;">
         <div class="modal-header">
-            <h3>T?o Slot l�i th? m?i</h3>
+            <h3>Tạo slot lái thử mới </h3>
             <button class="modal-close" onclick="document.getElementById('createSlotModal').style.display='none'">
                 <i class="bi bi-x"></i>
             </button>
@@ -224,20 +224,20 @@ else
                 <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                 
                 <div class="form-group">
-                    <label class="form-label">Ng�y <span style="color: var(--error);">*</span></label>
+                    <label class="form-label">Ngày <span style="color: var(--error);">*</span></label>
                     <input type="date" 
                            class="form-control" 
                            value="@Model.SelectedDate.ToString("yyyy-MM-dd")" 
                            disabled 
                            style="background: var(--surface); color: var(--text-muted);" />
-                    <small class="form-text">Slot s? ???c t?o cho ng�y: @Model.SelectedDate.ToString("dddd, dd/MM/yyyy")</small>
+                    <small class="form-text">Slot sẽ được tạo cho ngày: @Model.SelectedDate.ToString("dddd, dd/MM/yyyy")</small>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
                     <div class="form-group">
-                        <label class="form-label">Gi? b?t ??u <span style="color: var(--error);">*</span></label>
+                        <label class="form-label">Giờ bắt đầu  <span style="color: var(--error);">*</span></label>
                         <select name="startTime" class="form-control" required>
-                            <option value="">-- Ch?n gi? --</option>
+                            <option value="">-- Chọn giờ --</option>
                             <option value="07:00">07:00</option>
                             <option value="08:00">08:00</option>
                             <option value="09:00">09:00</option>
@@ -251,9 +251,9 @@ else
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Gi? k?t th�c <span style="color: var(--error);">*</span></label>
+                        <label class="form-label">Giờ kết thúc <span style="color: var(--error);">*</span></label>
                         <select name="endTime" class="form-control" required>
-                            <option value="">-- Ch?n gi? --</option>
+                            <option value="">-- Chọn giờ --</option>
                             <option value="09:00">09:00</option>
                             <option value="10:00">10:00</option>
                             <option value="11:00">11:00</option>
@@ -269,13 +269,13 @@ else
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">S? l??ng kh�ch t?i ?a <span style="color: var(--error);">*</span></label>
-                    <input type="number" name="maxSlots" class="form-control" min="1" max="10" value="3" required placeholder="V� d?: 3" />
-                    <small class="form-text">S? l??ng kh�ch h�ng c� th? book trong khung gi? n�y</small>
+                    <label class="form-label">Số lượng khách tối đa <span style="color: var(--error);">*</span></label>
+                    <input type="number" name="maxSlots" class="form-control" min="1" max="10" value="3" required placeholder="Ví d?: 3" />
+                    <small class="form-text">Số lượng khách hàng có thể book trong khung giờ này</small>
                 </div>
 
                 <div class="form-group mb-0">
-                    <label class="form-label">Ch?n xe c� s?n <span style="color: var(--error);">*</span></label>
+                    <label class="form-label">Chọn xe có sẵn <span style="color: var(--error);">*</span></label>
                     <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; background: var(--surface);">
                         @if (Model.AllVehicles.Any())
                         {
@@ -291,18 +291,18 @@ else
                         }
                         else
                         {
-                            <p class="text-muted" style="margin: 0;">Kh�ng c� xe n�o kh? d?ng</p>
+                            <p class="text-muted" style="margin: 0;">Không có xe nào khả dụng</p>
                         }
                     </div>
-                    <small class="form-text">Ch?n c�c m?u xe kh�ch h�ng c� th? l�i th? trong slot n�y</small>
+                    <small class="form-text">Chọn các mẫu xe khách hàng có thể lái thử trong slot này</small>
                 </div>
 
                 <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-secondary" onclick="document.getElementById('createSlotModal').style.display='none'">
-                        H?y
+                        Hủy
                     </button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle"></i> T?o Slot
+                        <i class="bi bi-check-circle"></i> Tạo Slot
                     </button>
                 </div>
             </form>

@@ -22,6 +22,9 @@ namespace Vehicle_Dealer_Management.BLL.IService
         Task DeleteSlotAsync(int slotId);
         Task<bool> CanBookSlotAsync(int slotId);
         Task<TestDrive> BookSlotAsync(int slotId, int customerId, int vehicleId, string? note = null);
+        Task<bool> HasActiveBookingAsync(int customerId);
+        Task<bool> IsVehicleBookedInSlotAsync(int slotId, int vehicleId);
+        Task<IEnumerable<TestDrive>> GetBookingsBySlotIdAsync(int slotId);
     }
 }
 

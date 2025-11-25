@@ -129,13 +129,71 @@ namespace Vehicle_Dealer_Management.Pages.Dealer
 
         public async Task<IActionResult> OnPostConfirmAsync(int id)
         {
+            var dealerId = HttpContext.Session.GetString("DealerId");
+            if (string.IsNullOrEmpty(dealerId))
+            {
+                TempData["Error"] = "Không tìm thấy thông tin đại lý. Vui lòng đăng nhập lại.";
+                return RedirectToPage("/Auth/Login");
+            }
+
+            var testDrive = await _testDriveService.GetTestDriveByIdAsync(id);
+            if (testDrive == null)
+            {
+                TempData["Error"] = "Không tìm thấy lịch lái thử này.";
+                return RedirectToPage();
+            }
+
+            // Verify this booking belongs to this dealer
+            if (testDrive.DealerId != int.Parse(dealerId))
+            {
+                TempData["Error"] = "Bạn không có quyền xác nhận lịch này.";
+                return RedirectToPage();
+            }
+
             await _testDriveService.UpdateTestDriveStatusAsync(id, "CONFIRMED");
+            TempData["Success"] = "Đã xác nhận lịch lái thử thành công.";
             return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostMarkDoneAsync(int id)
         {
             await _testDriveService.UpdateTestDriveStatusAsync(id, "DONE");
+            TempData["Success"] = "Đã đánh dấu hoàn thành lịch lái thử.";
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostCancelAsync(int id)
+        {
+            var dealerId = HttpContext.Session.GetString("DealerId");
+            if (string.IsNullOrEmpty(dealerId))
+            {
+                TempData["Error"] = "Không tìm thấy thông tin đại lý. Vui lòng đăng nhập lại.";
+                return RedirectToPage("/Auth/Login");
+            }
+
+            var testDrive = await _testDriveService.GetTestDriveByIdAsync(id);
+            if (testDrive == null)
+            {
+                TempData["Error"] = "Không tìm thấy lịch lái thử này.";
+                return RedirectToPage();
+            }
+
+            // Verify this booking belongs to this dealer
+            if (testDrive.DealerId != int.Parse(dealerId))
+            {
+                TempData["Error"] = "Bạn không có quyền hủy lịch này.";
+                return RedirectToPage();
+            }
+
+            // Check if can be cancelled (not already done or cancelled)
+            if (testDrive.Status == "DONE" || testDrive.Status == "CANCELLED")
+            {
+                TempData["Error"] = "Lịch này không thể hủy.";
+                return RedirectToPage();
+            }
+
+            await _testDriveService.UpdateTestDriveStatusAsync(id, "CANCELLED");
+            TempData["Success"] = "Đã hủy lịch lái thử thành công.";
             return RedirectToPage();
         }
 

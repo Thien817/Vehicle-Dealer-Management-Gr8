@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Vehicle_Dealer_Management.Migrations
 {
     /// <inheritdoc />
-    public partial class AddTestDriveSlotSystem : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

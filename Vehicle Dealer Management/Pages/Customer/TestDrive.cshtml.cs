@@ -34,6 +34,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
         public DateTime SelectedDate { get; set; }
         public int? SelectedDealerId { get; set; }
         public List<SlotViewModel> AvailableSlots { get; set; } = new();
+        public bool HasActiveBooking { get; set; } = false;
 
         public async Task<IActionResult> OnGetAsync(string? date, int? dealerId)
         {
@@ -97,6 +98,9 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                     IsSlotBooking = t.ParentSlotId.HasValue,
                     SlotTime = t.ParentSlot != null ? $"{t.ParentSlot.SlotStartTime} - {t.ParentSlot.SlotEndTime}" : null
                 }).ToList();
+
+                // Check if customer has active booking
+                HasActiveBooking = await _testDriveService.HasActiveBookingAsync(customerProfile.Id);
             }
 
             // NEW: Load available slots
@@ -129,7 +133,26 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                     ? new List<int>() 
                     : slot.AvailableVehicleIds.Split(',').Select(int.Parse).ToList();
 
-                var vehicles = AllVehicles.Where(v => availableVehicleIds.Contains(v.Id)).ToList();
+                // Get bookings for this slot to see which vehicles are already booked
+                var bookings = await _testDriveService.GetBookingsBySlotIdAsync(slot.Id);
+                var bookedVehicleIds = bookings
+                    .Where(b => b.Status != "CANCELLED")
+                    .Select(b => b.VehicleId)
+                    .Where(vid => vid.HasValue)
+                    .Select(vid => vid.Value)
+                    .ToList();
+
+                var vehicles = AllVehicles
+                    .Where(v => availableVehicleIds.Contains(v.Id))
+                    .Select(v => new VehicleSimple
+                    {
+                        Id = v.Id,
+                        Name = v.Name,
+                        IsBooked = bookedVehicleIds.Contains(v.Id)
+                    })
+                    .ToList();
+
+                var isFull = slot.IsFull;
 
                 AvailableSlots.Add(new SlotViewModel
                 {
@@ -138,7 +161,9 @@ namespace Vehicle_Dealer_Management.Pages.Customer
                     EndTime = slot.SlotEndTime ?? "",
                     AvailableSlots = slot.MaxSlots.GetValueOrDefault() - slot.CurrentBookings,
                     MaxSlots = slot.MaxSlots.GetValueOrDefault(),
-                    AvailableVehicles = vehicles
+                    AvailableVehicles = vehicles,
+                    BookedVehicleIds = bookedVehicleIds,
+                    IsFull = isFull
                 });
             }
         }
@@ -276,6 +301,14 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             if (dealer == null || dealer.Status != "ACTIVE")
             {
                 TempData["Error"] = "Đại lý không tồn tại hoặc không hoạt động.";
+                TempData["KeepModalOpen"] = "true";
+                return Page();
+            }
+
+            // Check if customer already has an active booking
+            if (await _testDriveService.HasActiveBookingAsync(customerProfile.Id))
+            {
+                TempData["Error"] = "Bạn đã có một lịch lái thử chưa hoàn thành. Vui lòng hoàn thành hoặc hủy lịch hiện tại trước khi đặt lịch mới.";
                 TempData["KeepModalOpen"] = "true";
                 return Page();
             }
@@ -568,6 +601,7 @@ namespace Vehicle_Dealer_Management.Pages.Customer
         {
             public int Id { get; set; }
             public string Name { get; set; } = "";
+            public bool IsBooked { get; set; } = false;
         }
 
         public class SlotViewModel
@@ -578,6 +612,8 @@ namespace Vehicle_Dealer_Management.Pages.Customer
             public int AvailableSlots { get; set; }
             public int MaxSlots { get; set; }
             public List<VehicleSimple> AvailableVehicles { get; set; } = new();
+            public List<int> BookedVehicleIds { get; set; } = new();
+            public bool IsFull { get; set; } = false;
         }
     }
 }
