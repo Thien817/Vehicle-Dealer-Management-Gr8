@@ -44,38 +44,38 @@
 <div class="grid grid-cols-3">
     @foreach (var dealer in Model.Dealers)
     {
-        <div class="card">
+        <div class="card" style="background: #ffffff; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <div class="card-body">
                 <div class="flex justify-between items-start mb-3">
                     <div>
-                        <h4 style="margin-bottom: 0.5rem;">
-                            <a href="/EVM/Dealers/Detail?id=@dealer.Id" style="color: inherit; text-decoration: none;">
+                        <h4 style="margin-bottom: 0.5rem; color: #000000;">
+                            <a href="/EVM/Dealers/Detail?id=@dealer.Id" style="color: #000000; text-decoration: none;">
                                 @dealer.Name
                             </a>
                         </h4>
-                        <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem;">
+                        <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem; color: #666666;">
                             <i class="bi bi-geo-alt"></i> @dealer.Address
                         </p>
-                        <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem;">
+                        <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem; color: #666666;">
                             <i class="bi bi-telephone"></i> @dealer.Phone
                         </p>
-                        <p class="text-muted" style="font-size: 0.875rem;">
+                        <p class="text-muted" style="font-size: 0.875rem; color: #666666;">
                             <i class="bi bi-envelope"></i> @dealer.Email
                         </p>
                     </div>
                     @await Html.PartialAsync("_StatusBadge", dealer.Status)
                 </div>
 
-                <hr style="border-color: var(--border); margin: 1rem 0;" />
+                <hr style="border-color: #e0e0e0; margin: 1rem 0;" />
 
                 <div class="grid grid-cols-2 gap-2 mb-3">
                     <div>
-                        <div class="text-muted" style="font-size: 0.875rem;">Doanh số (tháng)</div>
-                        <div style="font-weight: 600; color: var(--accent-cyan);">@dealer.MonthlySales.ToString("N0")</div>
+                        <div class="text-muted" style="font-size: 0.875rem; color: #666666;">Doanh số (tháng)</div>
+                        <div style="font-weight: 600; color: #0099cc;">@dealer.MonthlySales.ToString("N0")</div>
                     </div>
                     <div>
-                        <div class="text-muted" style="font-size: 0.875rem;">Số đơn</div>
-                        <div style="font-weight: 600;">@dealer.TotalOrders</div>
+                        <div class="text-muted" style="font-size: 0.875rem; color: #666666;">Số đơn</div>
+                        <div style="font-weight: 600; color: #000000;">@dealer.TotalOrders</div>
                     </div>
                 </div>
 
